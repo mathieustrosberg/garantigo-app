@@ -1,11 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
 import type { Purchase } from '@/purchases/purchase';
 
 import { createInMemoryPurchaseStorage } from './in-memory-purchase-storage';
-import type { PurchaseStorage } from './purchase-storage';
+import { StorageError, type PurchaseStorage } from './purchase-storage';
 import { PurchasesProvider, usePurchases } from './purchases-context';
+import { getStorageErrorMessage, WRITE_ERROR_MESSAGE } from './storage-error-message';
 
 const headphones: Purchase = {
   id: 'headphones',
@@ -76,6 +78,42 @@ describe('PurchasesProvider', () => {
     await renderProbe(brokenStorage);
 
     expect(await screen.findByText('error : ')).toBeTruthy();
+  });
+
+  it('lets the caller explain a change that could not be saved', async () => {
+    const readOnlyStorage: PurchaseStorage = {
+      ...createInMemoryPurchaseStorage([headphones]),
+      add: () => Promise.reject(new StorageError('write')),
+    };
+
+    function SaveProbe() {
+      const { addPurchase } = usePurchases();
+      const [message, setMessage] = useState('');
+
+      async function save() {
+        try {
+          await addPurchase({ name: 'Bouilloire', purchaseDate: '2026-10-02', warrantyMonths: 12 });
+        } catch (error) {
+          setMessage(getStorageErrorMessage(error));
+        }
+      }
+
+      return (
+        <Pressable onPress={save}>
+          <Text>Enregistrer</Text>
+          <Text>{message}</Text>
+        </Pressable>
+      );
+    }
+
+    await render(
+      <PurchasesProvider storage={readOnlyStorage}>
+        <SaveProbe />
+      </PurchasesProvider>,
+    );
+    await fireEvent.press(screen.getByText('Enregistrer'));
+
+    expect(await screen.findByText(WRITE_ERROR_MESSAGE)).toBeTruthy();
   });
 
   it('refuses to be used outside the provider', async () => {
