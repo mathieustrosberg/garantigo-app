@@ -68,7 +68,9 @@ Scanner ensuite le QR code affiché dans le terminal avec l'appareil photo de l'
 
 ```text
 src/app/        routes et écrans (Expo Router)
-src/__tests__/  tests des écrans
+src/purchases/  modèle et logique métier des achats
+src/storage/    accès au stockage et liste partagée entre les écrans
+src/data/       achats de démonstration
 docs/adr/       décisions d'architecture
 docs/           checklist de tests manuels sur iPhone
 .github/        intégration continue et modèle de Pull Request
