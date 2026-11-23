@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from 'heroui-native';
-import { Text, View } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 
 import { usePurchases } from '@/storage/purchases-context';
 
@@ -11,19 +11,22 @@ export default function PurchaseDetailScreen() {
   const { purchases } = usePurchases();
   const purchase = purchases.find((candidate) => candidate.id === id);
 
-  if (purchase === undefined) {
-    return (
-      <View className="flex-1 gap-4 bg-background p-6">
-        <Text className="text-base text-muted">Cet achat est introuvable.</Text>
-      </View>
-    );
-  }
-
+  // "automatic" makes iOS start the content below the navigation header instead of under it.
   return (
-    <View className="flex-1 gap-4 bg-background p-6">
-      <Text className="text-2xl font-bold text-foreground">{purchase.name}</Text>
-      <Text className="text-base text-muted">Le détail de l’achat sera affiché ici.</Text>
-      <Button onPress={() => router.push(`/purchases/${purchase.id}/edit`)}>Modifier</Button>
-    </View>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-4 p-6"
+    >
+      {purchase === undefined ? (
+        <Text className="text-base text-muted">Cet achat est introuvable.</Text>
+      ) : (
+        <>
+          <Text className="text-2xl font-bold text-foreground">{purchase.name}</Text>
+          <Text className="text-base text-muted">Le détail de l’achat sera affiché ici.</Text>
+          <Button onPress={() => router.push(`/purchases/${purchase.id}/edit`)}>Modifier</Button>
+        </>
+      )}
+    </ScrollView>
   );
 }
