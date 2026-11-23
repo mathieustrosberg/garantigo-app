@@ -1,6 +1,7 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Button, FieldError, Label } from 'heroui-native';
-import { Platform, View } from 'react-native';
+import { FieldError, Input, Label } from 'heroui-native';
+import { useState } from 'react';
+import { Platform, Pressable, View } from 'react-native';
 
 import { formatStoredDate, fromStoredDate, toStoredDate } from '@/purchases/purchase-date';
 
@@ -14,45 +15,62 @@ type DateFieldProps = {
   errorMessage?: string;
 };
 
-/** Date input based on the native date picker of the phone. */
+/**
+ * Date input that looks like the other fields of the form.
+ * Pressing it opens the native date picker of the phone.
+ */
 export function DateField({ label, value, onChange, maximumDate, errorMessage }: DateFieldProps) {
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const pickerValue = fromStoredDate(value) ?? new Date();
   const pickerMaximumDate = fromStoredDate(maximumDate) ?? undefined;
+  const formattedValue = formatStoredDate(value);
 
   function handlePickedDate(pickedDate: Date) {
     onChange(toStoredDate(pickedDate));
+    setIsCalendarOpen(false);
   }
 
-  // Android shows the picker in a dialog that must be opened by hand.
-  function openAndroidPicker() {
-    DateTimePickerAndroid.open({
-      value: pickerValue,
-      mode: 'date',
-      maximumDate: pickerMaximumDate,
-      onValueChange: (_event, pickedDate) => handlePickedDate(pickedDate),
-    });
+  function handlePress() {
+    // Android shows the picker in its own dialog; iOS shows a calendar under the field.
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: pickerValue,
+        mode: 'date',
+        maximumDate: pickerMaximumDate,
+        onValueChange: (_event, pickedDate) => handlePickedDate(pickedDate),
+      });
+      return;
+    }
+    setIsCalendarOpen(!isCalendarOpen);
   }
 
   return (
-    <View className="gap-2">
+    <View className="gap-1.5">
       <Label isRequired isInvalid={errorMessage !== undefined}>
         {label}
       </Label>
 
-      {Platform.OS === 'android' ? (
-        <Button variant="secondary" onPress={openAndroidPicker}>
-          {formatStoredDate(value)}
-        </Button>
-      ) : (
+      <Pressable
+        onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${label} : ${formattedValue}`}
+        accessibilityHint="Ouvre le calendrier"
+      >
+        {/* The input only displays the date: touches go to the Pressable around it. */}
+        <View pointerEvents="none">
+          <Input value={formattedValue} editable={false} isInvalid={errorMessage !== undefined} />
+        </View>
+      </Pressable>
+
+      {isCalendarOpen && (
         <DateTimePicker
+          testID="date-field-calendar"
           value={pickerValue}
           mode="date"
-          display="compact"
+          display="inline"
           locale="fr-FR"
           maximumDate={pickerMaximumDate}
           onValueChange={(_event, pickedDate) => handlePickedDate(pickedDate)}
-          accessibilityLabel={label}
-          style={{ alignSelf: 'flex-start' }}
         />
       )}
 

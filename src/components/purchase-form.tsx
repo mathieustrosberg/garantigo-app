@@ -119,7 +119,7 @@ export function PurchaseForm({
         <FieldError>{errors.price}</FieldError>
       </TextField>
 
-      <View className="gap-2">
+      <View className="gap-1.5">
         <Label>Catégorie</Label>
         <TagGroup
           selectionMode="single"
