@@ -1,56 +1,90 @@
-# Welcome to your Expo app 👋
+# GarantiGo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application mobile qui centralise les achats, conserve les tickets de caisse pris en photo et suit les dates de fin de garantie.
 
-## Get started
+Projet réalisé en binôme dans le cadre du Master 2 Lead Developer Front End.
 
-1. Install dependencies
+## Fonctionnalités
 
-   ```bash
-   npm install
-   ```
+Le périmètre prévu compte quatre écrans. Cette liste est mise à jour à chaque fonctionnalité fusionnée.
 
-2. Start the app
+- [ ] **Mes achats** : liste, recherche par nom, tri, statut de garantie.
+- [ ] **Ajouter / modifier** : formulaire validé, photo du ticket prise avec la caméra.
+- [ ] **Détail** : informations de l'achat, date de fin de garantie, jours restants, suppression.
+- [ ] **Mes garanties** : achats regroupés par statut.
 
-   ```bash
-   npx expo start
-   ```
+L'application fonctionne sans compte et sans serveur : les données restent sur le téléphone.
 
-In the output, you'll find options to open the app in a
+## Stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+| Outil                            | Rôle                                      |
+| -------------------------------- | ----------------------------------------- |
+| React Native 0.88, Expo SDK 58   | Socle de l'application                    |
+| TypeScript (mode strict)         | Typage                                    |
+| Expo Router                      | Navigation par fichiers (`src/app`)       |
+| HeroUI Native, Uniwind           | Composants d'interface et styles Tailwind |
+| Jest, jest-expo, Testing Library | Tests                                     |
+| ESLint, Prettier                 | Qualité et formatage du code              |
+| GitHub Actions                   | Intégration continue                      |
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Les choix techniques sont justifiés dans [`docs/adr`](docs/adr).
 
-## Get a fresh project
+## Prérequis
 
-When you're ready, run:
+- Node 22 (la version est fixée dans `.nvmrc`).
+- pnpm 10 (la version est fixée dans `package.json`, champ `packageManager`).
+- Un iPhone sous iOS 16.4 ou plus, avec l'application **Expo Go** installée depuis l'App Store.
+- Un compte Expo, connecté à la fois dans le terminal et dans Expo Go.
+
+## Installation
 
 ```bash
-npm run reset-project
+git clone https://github.com/mathieustrosberg/garantigo-app.git garantigo
+cd garantigo
+pnpm install
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Démarrage
 
-### Other setup steps
+```bash
+pnpm exec expo login   # une seule fois
+pnpm start
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Scanner ensuite le QR code affiché dans le terminal avec l'appareil photo de l'iPhone. Le téléphone et l'ordinateur doivent être sur le même réseau Wi-Fi. Si le réseau bloque la connexion, utiliser `pnpm start --tunnel`.
 
-## Learn more
+## Commandes
 
-To learn more about developing your project with Expo, look at the following resources:
+| Commande            | Effet                                 |
+| ------------------- | ------------------------------------- |
+| `pnpm start`        | Lance le serveur de développement     |
+| `pnpm typecheck`    | Vérifie le typage TypeScript          |
+| `pnpm lint`         | Analyse le code avec ESLint           |
+| `pnpm format`       | Formate le code avec Prettier         |
+| `pnpm format:check` | Vérifie le formatage sans rien écrire |
+| `pnpm test`         | Exécute les tests                     |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Organisation
 
-## Join the community
+```text
+src/app/        routes et écrans (Expo Router)
+src/__tests__/  tests des écrans
+docs/adr/       décisions d'architecture
+docs/           checklist de tests manuels sur iPhone
+.github/        intégration continue et modèle de Pull Request
+```
 
-Join our community of developers creating universal apps.
+## Intégration continue
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+À chaque Pull Request vers `main`, GitHub Actions installe les dépendances avec `pnpm install --frozen-lockfile`, puis exécute le typage, le lint, la vérification du formatage et les tests. Aucun secret ni build native n'est nécessaire.
+
+La caméra, les permissions, le retour haptique et la persistance des photos se vérifient à la main sur iPhone, avec la [checklist de tests manuels](docs/manual-test-checklist.md).
+
+## Limites connues
+
+- L'application se lance dans Expo Go : elle a besoin du serveur de développement pour démarrer. Une fois chargée, elle fonctionne sans connexion.
+- Les composants qui s'appuient sur une feuille native (`BottomSheet`) ne sont pas disponibles dans Expo Go et ne sont pas utilisés.
+
+## Contribuer
+
+Les règles de branches, de commits et de Pull Requests sont décrites dans [`CONTRIBUTING.md`](CONTRIBUTING.md).

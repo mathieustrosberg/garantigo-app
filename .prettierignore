@@ -1,0 +1,7 @@
+node_modules
+.expo
+dist
+pnpm-lock.yaml
+expo-env.d.ts
+src/uniwind-types.d.ts
+assets
