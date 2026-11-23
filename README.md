@@ -72,6 +72,7 @@ src/app/        routes et écrans (Expo Router)
 src/components/ composants partagés entre les écrans
 src/purchases/  modèle et logique métier des achats
 src/storage/    accès au stockage et liste partagée entre les écrans
+src/native/     accès aux fonctions natives du téléphone (retour haptique)
 src/data/       achats de démonstration
 docs/adr/       décisions d'architecture
 docs/           checklist de tests manuels sur iPhone

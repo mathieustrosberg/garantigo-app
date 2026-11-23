@@ -1,22 +1,48 @@
-import { useRouter } from 'expo-router';
-import { Button } from 'heroui-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useToast } from 'heroui-native';
 import { ScrollView, Text } from 'react-native';
 
-// Empty shell: the form arrives with the purchase form.
+import { PurchaseForm } from '@/components/purchase-form';
+import { notifySuccess } from '@/native/haptics';
+import type { PurchaseInput } from '@/purchases/purchase';
+import { toFormValues } from '@/purchases/purchase-validation';
+import { usePurchases } from '@/storage/purchases-context';
+
 export default function EditPurchaseScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { purchases, updatePurchase } = usePurchases();
+  const { toast } = useToast();
+  const purchase = purchases.find((candidate) => candidate.id === id);
 
-  // "automatic" makes iOS start the content below the navigation header instead of under it.
+  if (purchase === undefined) {
+    return (
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        className="flex-1 bg-background"
+        contentContainerClassName="p-6"
+      >
+        <Text className="text-base text-muted">Cet achat est introuvable.</Text>
+      </ScrollView>
+    );
+  }
+
+  const purchaseToEdit = purchase;
+
+  async function handleSubmit(input: PurchaseInput) {
+    // Spreading the purchase first keeps its id and its receipt photo.
+    await updatePurchase({ ...purchaseToEdit, ...input });
+    await notifySuccess();
+    toast.show({ variant: 'success', label: 'Modifications enregistrées' });
+    router.back();
+  }
+
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      className="flex-1 bg-background"
-      contentContainerClassName="gap-4 p-6"
-    >
-      <Text className="text-base text-muted">Le formulaire de modification sera affiché ici.</Text>
-      <Button variant="secondary" onPress={() => router.back()}>
-        Annuler
-      </Button>
-    </ScrollView>
+    <PurchaseForm
+      initialValues={toFormValues(purchase)}
+      submitLabel="Enregistrer les modifications"
+      onSubmit={handleSubmit}
+      onCancel={() => router.back()}
+    />
   );
 }
