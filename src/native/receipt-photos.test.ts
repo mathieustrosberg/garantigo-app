@@ -26,7 +26,9 @@ jest.mock('expo-file-system', () => {
     get exists() {
       return mockFiles.has(this.uri);
     }
-    copy(destination: File) {
+    // Like the real one, the copy finishes later: it returns a promise.
+    async copy(destination: File) {
+      await Promise.resolve();
       if (!mockFiles.has(this.uri)) throw new Error('Missing source file');
       mockFiles.add(destination.uri);
     }
