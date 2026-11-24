@@ -1,0 +1,41 @@
+[
+  {
+    "id": "demo-headphones",
+    "name": "Casque Sony WH-1000XM5",
+    "purchaseDate": "2026-11-18",
+    "warrantyMonths": 24,
+    "price": 349.99,
+    "category": "high-tech"
+  },
+  {
+    "id": "demo-coffee-machine",
+    "name": "Machine à café",
+    "purchaseDate": "2024-12-12",
+    "warrantyMonths": 24,
+    "price": 159.9,
+    "category": "home"
+  },
+  {
+    "id": "demo-laptop",
+    "name": "Ordinateur portable",
+    "purchaseDate": "2025-05-21",
+    "warrantyMonths": 24,
+    "price": 1199,
+    "category": "high-tech"
+  },
+  {
+    "id": "demo-vacuum",
+    "name": "Aspirateur sans fil",
+    "purchaseDate": "2023-04-10",
+    "warrantyMonths": 24,
+    "price": 249,
+    "category": "home"
+  },
+  {
+    "id": "demo-food-processor",
+    "name": "Robot de cuisine",
+    "purchaseDate": "2026-03-01",
+    "warrantyMonths": 24,
+    "category": "kitchen"
+  }
+]
