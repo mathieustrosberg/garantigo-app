@@ -1,4 +1,10 @@
-import { formatStoredDate, fromStoredDate, isStoredDate, toStoredDate } from './purchase-date';
+import {
+  formatStoredDate,
+  fromStoredDate,
+  getToday,
+  isStoredDate,
+  toStoredDate,
+} from './purchase-date';
 
 describe('toStoredDate', () => {
   it('formats the local day with leading zeros', () => {
@@ -55,5 +61,23 @@ describe('formatStoredDate', () => {
 
   it('shows the text unchanged when it is not a real date', () => {
     expect(formatStoredDate('2026-02-30')).toBe('2026-02-30');
+  });
+});
+
+describe('getToday', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('returns the day shown on the phone', () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 10, 24, 9, 15));
+
+    expect(getToday()).toBe('2026-11-24');
+  });
+
+  it('does not move to the next day late in the evening', () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 11, 31, 23, 59, 59));
+
+    expect(getToday()).toBe('2026-12-31');
   });
 });

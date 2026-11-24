@@ -144,4 +144,51 @@ describe('PurchaseForm', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('saves the category chosen by the user', async () => {
+    const onSubmit = jest.fn(async () => {});
+    await renderForm({ onSubmit });
+
+    await fireEvent.changeText(screen.getByPlaceholderText('Ex. Casque audio'), 'Bouilloire');
+    await fireEvent.press(screen.getByText('Cuisine'));
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ category: 'kitchen' }));
+  });
+
+  it('replaces the category when another one is chosen', async () => {
+    const onSubmit = jest.fn(async () => {});
+    await renderForm({ initialValues: headphonesValues, onSubmit });
+
+    await fireEvent.press(screen.getByText('Maison'));
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ category: 'home' }));
+  });
+
+  it('saves the purchase date picked in the calendar', async () => {
+    const onSubmit = jest.fn(async () => {});
+    await renderForm({ initialValues: headphonesValues, onSubmit });
+
+    await fireEvent.press(screen.getByLabelText('Date d’achat : 18 novembre 2026'));
+    await fireEvent(screen.getByTestId('date-field-calendar'), 'change', {
+      nativeEvent: { timestamp: new Date(2026, 9, 2).getTime() },
+    });
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ purchaseDate: '2026-10-02' }));
+  });
+
+  it('refuses a purchase date after today', async () => {
+    const onSubmit = jest.fn(async () => {});
+    await renderForm({
+      initialValues: { ...headphonesValues, purchaseDate: '2026-11-24' },
+      onSubmit,
+    });
+
+    await submit();
+
+    expect(await screen.findByText('La date d’achat ne peut pas être dans le futur.')).toBeTruthy();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

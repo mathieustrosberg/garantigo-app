@@ -73,6 +73,7 @@ src/components/ composants partagés entre les écrans
 src/purchases/  modèle et logique métier des achats
 src/storage/    accès au stockage et liste partagée entre les écrans
 src/native/     accès aux fonctions natives du téléphone (retour haptique)
+src/__tests__/  tests des écrans (ils ne peuvent pas être placés dans src/app)
 src/data/       achats de démonstration
 docs/adr/       décisions d'architecture
 docs/           checklist de tests manuels sur iPhone
