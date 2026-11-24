@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { HeroUINativeProvider } from 'heroui-native';
+import type { ReactNode } from 'react';
+import { Text } from 'react-native';
 
 import type { Purchase } from '@/purchases/purchase';
 
@@ -30,6 +32,8 @@ const vacuum: Purchase = {
 };
 
 type RenderOptions = {
+  totalCount?: number;
+  controls?: ReactNode;
   onOpenPurchase?: (purchaseId: string) => void;
   onAddPurchase?: () => void;
 };
@@ -39,7 +43,9 @@ async function renderList(purchases: Purchase[], options: RenderOptions = {}) {
     <HeroUINativeProvider config={{ devInfo: { stylingPrinciples: false } }}>
       <PurchaseList
         purchases={purchases}
+        totalCount={options.totalCount}
         today={TODAY}
+        controls={options.controls}
         onOpenPurchase={options.onOpenPurchase ?? (() => {})}
         onAddPurchase={options.onAddPurchase ?? (() => {})}
       />
@@ -120,5 +126,32 @@ describe('PurchaseList', () => {
     await fireEvent.press(screen.getByText('Ajouter un achat'));
 
     expect(onAddPurchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the search and sort controls above the purchases', async () => {
+    await renderList([headphones], { controls: <Text>Contrôles de recherche</Text> });
+
+    expect(screen.getByText('Contrôles de recherche')).toBeTruthy();
+    expect(screen.getByText('Casque audio')).toBeTruthy();
+  });
+
+  it('counts the saved purchases, not only the ones found by the search', async () => {
+    await renderList([headphones], { totalCount: 3 });
+
+    expect(screen.getByText('3 achats enregistrés.')).toBeTruthy();
+  });
+
+  it('explains that the search found nothing, and keeps the controls visible', async () => {
+    const onAddPurchase = jest.fn();
+    await renderList([], {
+      totalCount: 3,
+      controls: <Text>Contrôles de recherche</Text>,
+      onAddPurchase,
+    });
+
+    expect(screen.getByText('Aucun résultat')).toBeTruthy();
+    expect(screen.getByText('Aucun achat ne correspond à votre recherche.')).toBeTruthy();
+    expect(screen.getByText('Contrôles de recherche')).toBeTruthy();
+    expect(screen.queryByText('Aucun achat')).toBeNull();
   });
 });
