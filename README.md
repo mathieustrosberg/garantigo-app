@@ -23,6 +23,7 @@ L'application fonctionne sans compte et sans serveur : les données restent sur 
 | TypeScript (mode strict)         | Typage                                    |
 | Expo Router                      | Navigation par fichiers (`src/app`)       |
 | HeroUI Native, Uniwind           | Composants d'interface et styles Tailwind |
+| AsyncStorage                     | Persistance locale des achats             |
 | Jest, jest-expo, Testing Library | Tests                                     |
 | ESLint, Prettier                 | Qualité et formatage du code              |
 | GitHub Actions                   | Intégration continue                      |
@@ -68,6 +69,7 @@ Scanner ensuite le QR code affiché dans le terminal avec l'appareil photo de l'
 
 ```text
 src/app/        routes et écrans (Expo Router)
+src/components/ composants partagés entre les écrans
 src/purchases/  modèle et logique métier des achats
 src/storage/    accès au stockage et liste partagée entre les écrans
 src/data/       achats de démonstration

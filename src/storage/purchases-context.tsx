@@ -9,6 +9,9 @@ type LoadStatus = 'loading' | 'ready' | 'error';
 type PurchasesContextValue = {
   purchases: Purchase[];
   status: LoadStatus;
+  /** Reads the storage again, for example after a loading error. */
+  reload: () => Promise<void>;
+  /** The three functions below reject with a StorageError when the change cannot be saved. */
   addPurchase: (input: PurchaseInput) => Promise<Purchase>;
   updatePurchase: (purchase: Purchase) => Promise<void>;
   removePurchase: (id: string) => Promise<void>;
@@ -45,6 +48,16 @@ export function PurchasesProvider({ storage, children }: PurchasesProviderProps)
     };
   }, [storage]);
 
+  async function reload() {
+    setStatus('loading');
+    try {
+      setPurchases(await storage.getAll());
+      setStatus('ready');
+    } catch {
+      setStatus('error');
+    }
+  }
+
   async function refresh() {
     setPurchases(await storage.getAll());
   }
@@ -67,7 +80,7 @@ export function PurchasesProvider({ storage, children }: PurchasesProviderProps)
 
   return (
     <PurchasesContext.Provider
-      value={{ purchases, status, addPurchase, updatePurchase, removePurchase }}
+      value={{ purchases, status, reload, addPurchase, updatePurchase, removePurchase }}
     >
       {children}
     </PurchasesContext.Provider>
