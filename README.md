@@ -11,7 +11,7 @@ Le périmètre prévu compte quatre écrans. Cette liste est mise à jour à cha
 - [ ] **Mes achats** : liste, recherche par nom, tri, statut de garantie.
 - [ ] **Ajouter / modifier** : formulaire validé, photo du ticket prise avec la caméra.
 - [ ] **Détail** : informations de l'achat, date de fin de garantie, jours restants, suppression.
-- [ ] **Mes garanties** : achats regroupés par statut.
+- [x] **Mes garanties** : achats regroupés par statut.
 
 L'application fonctionne sans compte et sans serveur : les données restent sur le téléphone.
 

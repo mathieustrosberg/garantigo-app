@@ -1,15 +1,25 @@
-import { Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Empty shell: purchases grouped by warranty status arrive with the warranties screen.
+import { WarrantyList } from '@/components/warranty-list';
+import { getToday } from '@/purchases/purchase-date';
+import { groupPurchasesByWarrantyStatus } from '@/purchases/warranty-groups';
+import { usePurchases } from '@/storage/purchases-context';
+
 export default function WarrantiesScreen() {
+  const router = useRouter();
+  const { purchases } = usePurchases();
+  const groups = groupPurchasesByWarrantyStatus(purchases, getToday());
+
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View className="gap-4 p-6">
-          <Text className="text-3xl font-bold text-foreground">Mes garanties</Text>
-          <Text className="text-base text-muted">Vos garanties seront regroupées ici.</Text>
-        </View>
+        <WarrantyList
+          groups={groups}
+          onOpenPurchase={(purchaseId) => router.push(`/purchases/${purchaseId}`)}
+          onAddPurchase={() => router.push('/purchases/new')}
+        />
       </SafeAreaView>
     </View>
   );
