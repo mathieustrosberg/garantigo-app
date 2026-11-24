@@ -8,7 +8,7 @@ Projet réalisé en binôme dans le cadre du Master 2 Lead Developer Front End.
 
 Le périmètre prévu compte quatre écrans. Cette liste est mise à jour à chaque fonctionnalité fusionnée.
 
-- [ ] **Mes achats** : liste, recherche par nom, tri, statut de garantie.
+- [x] **Mes achats** : liste, recherche par nom, tri, statut de garantie.
 - [ ] **Ajouter / modifier** : formulaire validé, photo du ticket prise avec la caméra.
 - [ ] **Détail** : informations de l'achat, date de fin de garantie, jours restants, suppression.
 - [x] **Mes garanties** : achats regroupés par statut.
