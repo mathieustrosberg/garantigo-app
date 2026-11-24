@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 
-import { getReceiptPhotoUri, takeReceiptPhoto } from './receipt-photos';
+import { deleteReceiptPhoto, getReceiptPhotoUri, takeReceiptPhoto } from './receipt-photos';
 
 // The camera and the phone's files do not exist in Jest: small fakes stand in for them.
 const mockFiles = new Set<string>();
@@ -25,6 +25,9 @@ jest.mock('expo-file-system', () => {
     }
     get exists() {
       return mockFiles.has(this.uri);
+    }
+    delete() {
+      mockFiles.delete(this.uri);
     }
     // Like the real one, the copy finishes later: it returns a promise.
     async copy(destination: File) {
@@ -120,5 +123,19 @@ describe('getReceiptPhotoUri', () => {
 
   it('gives nothing when the photo is no longer on the phone', () => {
     expect(getReceiptPhotoUri('receipt-unknown.jpg')).toBeUndefined();
+  });
+});
+
+describe('deleteReceiptPhoto', () => {
+  it('removes the photo from the receipts folder', () => {
+    mockFiles.add('file:///documents/receipts/receipt-1.jpg');
+
+    deleteReceiptPhoto('receipt-1.jpg');
+
+    expect(mockFiles.has('file:///documents/receipts/receipt-1.jpg')).toBe(false);
+  });
+
+  it('does nothing when the photo is already gone', () => {
+    expect(() => deleteReceiptPhoto('receipt-unknown.jpg')).not.toThrow();
   });
 });

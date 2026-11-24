@@ -58,3 +58,16 @@ export function getReceiptPhotoUri(fileName: string): string | undefined {
     return undefined;
   }
 }
+
+/**
+ * Deletes a stored receipt photo. It never throws: a photo left on the phone
+ * must not prevent the purchase from being deleted.
+ */
+export function deleteReceiptPhoto(fileName: string): void {
+  try {
+    const file = new File(getReceiptsDirectory(), fileName);
+    if (file.exists) file.delete();
+  } catch {
+    // The file stays in the receipts folder, unused: nothing to show to the user.
+  }
+}
