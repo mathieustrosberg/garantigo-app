@@ -13,6 +13,7 @@ import {
 import { getStorageErrorMessage } from '@/storage/storage-error-message';
 
 import { DateField } from './date-field';
+import { ReceiptPhotoField } from './receipt-photo-field';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as PurchaseCategory[];
 
@@ -129,6 +130,11 @@ export function PurchaseForm({
           </TagGroup.List>
         </TagGroup>
       </View>
+
+      <ReceiptPhotoField
+        fileName={values.receiptFileName}
+        onChange={(receiptFileName) => changeValue({ receiptFileName })}
+      />
 
       {saveError !== undefined && <Text className="text-base text-danger">{saveError}</Text>}
 

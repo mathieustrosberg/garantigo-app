@@ -15,6 +15,7 @@ const validValues: PurchaseFormValues = {
   warrantyMonths: '24',
   price: '349,99',
   category: 'high-tech',
+  receiptFileName: undefined,
 };
 
 function getErrors(changes: Partial<PurchaseFormValues>): PurchaseFormErrors {
@@ -34,6 +35,15 @@ describe('validatePurchaseForm with valid values', () => {
         category: 'high-tech',
       },
     });
+  });
+
+  it('keeps the name of the receipt photo', () => {
+    const result = validatePurchaseForm(
+      { ...validValues, receiptFileName: 'receipt-1.jpg' },
+      TODAY,
+    );
+
+    expect(result).toMatchObject({ isValid: true, input: { receiptFileName: 'receipt-1.jpg' } });
   });
 
   it('removes the spaces around the name', () => {
@@ -123,6 +133,7 @@ describe('form values', () => {
       warrantyMonths: '24',
       price: '',
       category: undefined,
+      receiptFileName: undefined,
     });
   });
 
@@ -134,6 +145,7 @@ describe('form values', () => {
       warrantyMonths: 24,
       price: 349.9,
       category: 'high-tech',
+      receiptFileName: 'receipt-1.jpg',
     };
 
     expect(toFormValues(purchase)).toEqual({
@@ -142,6 +154,7 @@ describe('form values', () => {
       warrantyMonths: '24',
       price: '349,9',
       category: 'high-tech',
+      receiptFileName: 'receipt-1.jpg',
     });
   });
 

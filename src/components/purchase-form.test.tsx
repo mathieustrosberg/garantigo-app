@@ -16,12 +16,20 @@ jest.mock('@/purchases/purchase-date', () => ({
   getToday: () => '2026-11-23',
 }));
 
+// The camera does not exist in Jest: the photo field gets a fake one.
+jest.mock('@/native/receipt-photos', () => ({
+  ...jest.requireActual('@/native/receipt-photos'),
+  takeReceiptPhoto: jest.fn(async () => ({ status: 'taken', fileName: 'receipt-new.jpg' })),
+  getReceiptPhotoUri: (fileName: string) => `file:///documents/receipts/${fileName}`,
+}));
+
 const headphonesValues: PurchaseFormValues = {
   name: 'Casque audio',
   purchaseDate: '2026-11-18',
   warrantyMonths: '24',
   price: '349,99',
   category: 'high-tech',
+  receiptFileName: undefined,
 };
 
 type RenderOptions = {
@@ -190,5 +198,31 @@ describe('PurchaseForm', () => {
 
     expect(await screen.findByText('La date d’achat ne peut pas être dans le futur.')).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('saves the receipt photo taken with the camera', async () => {
+    const onSubmit = jest.fn(async () => {});
+    await renderForm({ initialValues: headphonesValues, onSubmit });
+
+    await fireEvent.press(screen.getByText('Photographier le ticket'));
+    await screen.findByLabelText('Aperçu de la photo du ticket');
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ receiptFileName: 'receipt-new.jpg' }),
+    );
+  });
+
+  it('saves the purchase without its photo once it is removed', async () => {
+    const onSubmit = jest.fn(async () => {});
+    await renderForm({
+      initialValues: { ...headphonesValues, receiptFileName: 'receipt-1.jpg' },
+      onSubmit,
+    });
+
+    await fireEvent.press(screen.getByText('Retirer'));
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ receiptFileName: undefined }));
   });
 });

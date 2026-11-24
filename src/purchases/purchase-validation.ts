@@ -8,6 +8,7 @@ export type PurchaseFormValues = {
   warrantyMonths: string;
   price: string;
   category: PurchaseCategory | undefined;
+  receiptFileName: string | undefined;
 };
 
 export type PurchaseFormField = 'name' | 'purchaseDate' | 'warrantyMonths' | 'price';
@@ -22,7 +23,14 @@ const WHOLE_NUMBER_FORMAT = /^\d+$/;
 const PRICE_FORMAT = /^\d+([.,]\d{1,2})?$/;
 
 export function getEmptyFormValues(today: string): PurchaseFormValues {
-  return { name: '', purchaseDate: today, warrantyMonths: '24', price: '', category: undefined };
+  return {
+    name: '',
+    purchaseDate: today,
+    warrantyMonths: '24',
+    price: '',
+    category: undefined,
+    receiptFileName: undefined,
+  };
 }
 
 export function toFormValues(purchase: Purchase): PurchaseFormValues {
@@ -32,6 +40,7 @@ export function toFormValues(purchase: Purchase): PurchaseFormValues {
     warrantyMonths: String(purchase.warrantyMonths),
     price: purchase.price === undefined ? '' : String(purchase.price).replace('.', ','),
     category: purchase.category,
+    receiptFileName: purchase.receiptFileName,
   };
 }
 
@@ -77,6 +86,7 @@ export function validatePurchaseForm(
       warrantyMonths: Number(warrantyMonths),
       price: price === '' ? undefined : Number(price.replace(',', '.')),
       category: values.category,
+      receiptFileName: values.receiptFileName,
     },
   };
 }
