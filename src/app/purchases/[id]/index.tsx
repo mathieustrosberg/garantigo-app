@@ -1,32 +1,33 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Button } from 'heroui-native';
 import { ScrollView, Text } from 'react-native';
 
+import { PurchaseDetail } from '@/components/purchase-detail';
+import { getToday } from '@/purchases/purchase-date';
 import { usePurchases } from '@/storage/purchases-context';
 
-// Empty shell: the full information arrives with the purchase detail screen.
 export default function PurchaseDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { purchases } = usePurchases();
   const purchase = purchases.find((candidate) => candidate.id === id);
 
-  // "automatic" makes iOS start the content below the navigation header instead of under it.
-  return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      className="flex-1 bg-background"
-      contentContainerClassName="gap-4 p-6"
-    >
-      {purchase === undefined ? (
+  if (purchase === undefined) {
+    return (
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        className="flex-1 bg-background"
+        contentContainerClassName="p-6"
+      >
         <Text className="text-base text-muted">Cet achat est introuvable.</Text>
-      ) : (
-        <>
-          <Text className="text-2xl font-bold text-foreground">{purchase.name}</Text>
-          <Text className="text-base text-muted">Le détail de l’achat sera affiché ici.</Text>
-          <Button onPress={() => router.push(`/purchases/${purchase.id}/edit`)}>Modifier</Button>
-        </>
-      )}
-    </ScrollView>
+      </ScrollView>
+    );
+  }
+
+  return (
+    <PurchaseDetail
+      purchase={purchase}
+      today={getToday()}
+      onEdit={() => router.push(`/purchases/${purchase.id}/edit`)}
+    />
   );
 }

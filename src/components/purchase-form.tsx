@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import type { PurchaseCategory, PurchaseInput } from '@/purchases/purchase';
 import { getToday } from '@/purchases/purchase-date';
+import { CATEGORY_LABELS } from '@/purchases/purchase-labels';
 import {
   validatePurchaseForm,
   type PurchaseFormErrors,
@@ -12,13 +13,6 @@ import {
 import { getStorageErrorMessage } from '@/storage/storage-error-message';
 
 import { DateField } from './date-field';
-
-const CATEGORY_LABELS: Record<PurchaseCategory, string> = {
-  'high-tech': 'High-tech',
-  home: 'Maison',
-  kitchen: 'Cuisine',
-  other: 'Autre',
-};
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as PurchaseCategory[];
 
