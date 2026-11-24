@@ -33,7 +33,15 @@
           "imageWidth": 76
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "GarantiGo utilise l’appareil photo pour photographier vos tickets de caisse.",
+          "photosPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

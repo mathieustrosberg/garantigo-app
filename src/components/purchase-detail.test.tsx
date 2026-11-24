@@ -17,10 +17,13 @@ const headphones: Purchase = {
   category: 'high-tech',
 };
 
-async function renderDetail(purchase: Purchase, onEdit: () => void = () => {}) {
+async function renderDetail(
+  purchase: Purchase,
+  { onEdit = () => {}, receiptUri }: { onEdit?: () => void; receiptUri?: string } = {},
+) {
   await render(
     <HeroUINativeProvider config={{ devInfo: { stylingPrinciples: false } }}>
-      <PurchaseDetail purchase={purchase} today={TODAY} onEdit={onEdit} />
+      <PurchaseDetail purchase={purchase} today={TODAY} receiptUri={receiptUri} onEdit={onEdit} />
     </HeroUINativeProvider>,
   );
 }
@@ -73,10 +76,32 @@ describe('PurchaseDetail', () => {
 
   it('opens the form from the edit button', async () => {
     const onEdit = jest.fn();
-    await renderDetail(headphones, onEdit);
+    await renderDetail(headphones, { onEdit });
 
     await fireEvent.press(screen.getByText('Modifier'));
 
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the receipt photo', async () => {
+    await renderDetail(
+      { ...headphones, receiptFileName: 'receipt-1.jpg' },
+      { receiptUri: 'file:///documents/receipts/receipt-1.jpg' },
+    );
+
+    expect(screen.getByLabelText('Photo du ticket de caisse')).toBeTruthy();
+  });
+
+  it('says when the purchase has no receipt photo', async () => {
+    await renderDetail(headphones);
+
+    expect(screen.getByText('Aucune photo du ticket')).toBeTruthy();
+    expect(screen.queryByLabelText('Photo du ticket de caisse')).toBeNull();
+  });
+
+  it('says when the receipt photo is missing from the phone', async () => {
+    await renderDetail({ ...headphones, receiptFileName: 'receipt-1.jpg' });
+
+    expect(screen.getByText('La photo du ticket est introuvable sur ce téléphone.')).toBeTruthy();
   });
 });

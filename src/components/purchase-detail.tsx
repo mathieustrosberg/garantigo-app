@@ -1,5 +1,5 @@
 import { Button, Surface } from 'heroui-native';
-import { ScrollView, Text, View } from 'react-native';
+import { Image, ScrollView, Text, View } from 'react-native';
 
 import type { Purchase } from '@/purchases/purchase';
 import { formatStoredDate } from '@/purchases/purchase-date';
@@ -13,11 +13,13 @@ type PurchaseDetailProps = {
   purchase: Purchase;
   /** 'YYYY-MM-DD', passed by the screen so that tests never depend on the real date. */
   today: string;
+  /** Address of the receipt photo, or undefined when the file is missing from the phone. */
+  receiptUri: string | undefined;
   onEdit: () => void;
 };
 
 /** Everything about one purchase: its warranty first, then the information typed in the form. */
-export function PurchaseDetail({ purchase, today, onEdit }: PurchaseDetailProps) {
+export function PurchaseDetail({ purchase, today, receiptUri, onEdit }: PurchaseDetailProps) {
   const warranty = getWarranty(purchase, today);
 
   // "automatic" makes iOS start the content below the navigation header instead of under it.
@@ -59,6 +61,11 @@ export function PurchaseDetail({ purchase, today, onEdit }: PurchaseDetailProps)
         />
       </Surface>
 
+      <Surface className="gap-3">
+        <Text className="text-sm text-muted">Ticket de caisse</Text>
+        <ReceiptPhoto hasReceipt={purchase.receiptFileName !== undefined} uri={receiptUri} />
+      </Surface>
+
       <Button onPress={onEdit}>Modifier</Button>
     </ScrollView>
   );
@@ -75,5 +82,31 @@ function DetailRow({ label, value }: DetailRowProps) {
       <Text className="flex-1 text-base text-muted">{label}</Text>
       <Text className="text-base text-foreground">{value}</Text>
     </View>
+  );
+}
+
+type ReceiptPhotoProps = {
+  hasReceipt: boolean;
+  uri: string | undefined;
+};
+
+function ReceiptPhoto({ hasReceipt, uri }: ReceiptPhotoProps) {
+  if (!hasReceipt) {
+    return <Text className="text-base text-foreground">Aucune photo du ticket</Text>;
+  }
+  if (uri === undefined) {
+    return (
+      <Text className="text-base text-foreground">
+        La photo du ticket est introuvable sur ce téléphone.
+      </Text>
+    );
+  }
+  return (
+    <Image
+      source={{ uri }}
+      accessibilityLabel="Photo du ticket de caisse"
+      resizeMode="contain"
+      className="aspect-[3/4] w-full rounded-xl"
+    />
   );
 }

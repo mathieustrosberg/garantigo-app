@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text } from 'react-native';
 
 import { PurchaseDetail } from '@/components/purchase-detail';
+import { getReceiptPhotoUri } from '@/native/receipt-photos';
 import { getToday } from '@/purchases/purchase-date';
 import { usePurchases } from '@/storage/purchases-context';
 
@@ -27,6 +28,11 @@ export default function PurchaseDetailScreen() {
     <PurchaseDetail
       purchase={purchase}
       today={getToday()}
+      receiptUri={
+        purchase.receiptFileName === undefined
+          ? undefined
+          : getReceiptPhotoUri(purchase.receiptFileName)
+      }
       onEdit={() => router.push(`/purchases/${purchase.id}/edit`)}
     />
   );
