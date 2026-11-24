@@ -4,11 +4,25 @@ Ces vérifications ne peuvent pas être automatisées : elles dépendent du mat�
 
 Noter pour chaque passage : la date, le modèle d'iPhone et la version d'iOS.
 
+| Date | Testé par | iPhone | iOS | Résultat |
+| ---- | --------- | ------ | --- | -------- |
+|      |           |        |     |          |
+
 ## Démarrage
 
 - [ ] `pnpm start`, puis scan du QR code : l'application s'ouvre dans Expo Go.
 - [ ] Les composants HeroUI Native s'affichent correctement (texte, bouton, champ, carte).
 - [ ] L'interface est entièrement en français.
+- [ ] L'application suit le thème clair ou sombre du téléphone.
+- [ ] La barre d'onglets est masquée sur le détail et sur le formulaire.
+
+## Parcours
+
+- [ ] Mes achats : la recherche par nom filtre la liste ; « Aucun résultat » s'affiche quand rien ne correspond.
+- [ ] Mes achats : le tri par date d'achat et par fin de garantie change l'ordre de la liste.
+- [ ] Détail : la date de fin, les jours restants et le statut sont affichés ; « Non renseigné » si le prix manque.
+- [ ] Formulaire : « Annuler » ferme le formulaire sans rien enregistrer.
+- [ ] Mes garanties : les achats sont regroupés par statut.
 
 ## Persistance
 
@@ -22,10 +36,17 @@ Noter pour chaque passage : la date, le modèle d'iPhone et la version d'iOS.
 
 - [ ] Le premier appui sur « Photographier le ticket » affiche la demande de permission.
 - [ ] Permission acceptée : la caméra s'ouvre et la photo prise s'affiche dans le formulaire.
+- [ ] « Reprendre » remplace la photo par une nouvelle ; « Retirer » l'enlève du formulaire.
 - [ ] Prise de vue annulée : le formulaire reste inchangé, sans message d'erreur.
-- [ ] Permission refusée : un message explique comment l'autoriser dans les Réglages.
+- [ ] Permission refusée : un message explique comment l'autoriser dans les Réglages, et « Ouvrir les Réglages » ouvre les réglages d'Expo Go.
 - [ ] La photo est toujours visible dans le détail après redémarrage de l'application.
 - [ ] La suppression d'un achat supprime aussi sa photo.
+
+## Suppression
+
+- [ ] « Supprimer » affiche une confirmation ; elle mentionne la photo seulement si l'achat en a une.
+- [ ] « Annuler » dans la confirmation garde l'achat.
+- [ ] Après la suppression, le retour à la liste se fait sans afficher « Cet achat est introuvable. ».
 
 ## Retour haptique
 

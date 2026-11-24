@@ -31,4 +31,4 @@ Expo SDK 58 est la seule version acceptée par l'application Expo Go de l'App St
 - **+** La caméra, l'haptique et le stockage sont fournis par des modules Expo inclus dans Expo Go.
 - **−** Seuls les modules natifs inclus dans Expo Go sont utilisables. Un module absent imposerait de passer à un development build.
 - **−** L'application a besoin du serveur de développement pour démarrer : ce n'est pas une application installée de façon autonome.
-- **−** La demande de permission de la caméra est celle d'Expo Go, pas celle de GarantiGo : son texte ne peut pas être personnalisé.
+- **−** La demande de permission de la caméra est celle d'Expo Go, pas celle de GarantiGo : son texte ne peut pas être personnalisé. Le texte en français prévu dans `app.json` ne s'applique qu'à un development build.

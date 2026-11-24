@@ -31,5 +31,5 @@ Alternatives écartées :
 - **+** La clé absente (premier lancement) est distinguée de la liste vide (tout a été supprimé) : les achats de démonstration ne reviennent pas.
 - **−** Chaque modification réécrit toute la liste : acceptable pour quelques dizaines d'achats, pas pour des milliers.
 - **−** Les données ne sont ni chiffrées ni synchronisées : désinstaller l'application les supprime.
-- **−** Les photos des tickets ne sont pas stockées ici : elles sont des fichiers, et l'achat n'en garde que le nom.
+- **−** Les photos des tickets ne sont pas stockées ici : elles sont des fichiers, et l'achat n'en garde que le nom (voir [ADR-004](004-receipt-photos.md)).
 - **−** Les erreurs de lecture et d'écriture sont signalées par une `StorageError`, que l'interface doit expliquer à l'utilisateur.
