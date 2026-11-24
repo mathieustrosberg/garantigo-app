@@ -116,6 +116,95 @@ describe('PurchasesProvider', () => {
     expect(await screen.findByText(WRITE_ERROR_MESSAGE)).toBeTruthy();
   });
 
+  it('shares an updated purchase', async () => {
+    function UpdateProbe() {
+      const { purchases, updatePurchase } = usePurchases();
+
+      return (
+        <Pressable onPress={() => updatePurchase({ ...headphones, name: 'Casque sans fil' })}>
+          <Text>Renommer</Text>
+          <Text>{purchases.map((purchase) => purchase.name).join(', ')}</Text>
+        </Pressable>
+      );
+    }
+
+    await render(
+      <PurchasesProvider storage={createInMemoryPurchaseStorage([headphones])}>
+        <UpdateProbe />
+      </PurchasesProvider>,
+    );
+    await screen.findByText('Casque audio');
+
+    await fireEvent.press(screen.getByText('Renommer'));
+
+    expect(await screen.findByText('Casque sans fil')).toBeTruthy();
+  });
+
+  it('reads the storage again when asked to reload', async () => {
+    let savedPurchases = [headphones];
+    const changingStorage: PurchaseStorage = {
+      ...createInMemoryPurchaseStorage([]),
+      getAll: async () => savedPurchases,
+    };
+
+    function ReloadProbe() {
+      const { purchases, status, reload } = usePurchases();
+
+      return (
+        <Pressable onPress={reload}>
+          <Text>Recharger</Text>
+          <Text>{`${status} : ${purchases.length}`}</Text>
+        </Pressable>
+      );
+    }
+
+    await render(
+      <PurchasesProvider storage={changingStorage}>
+        <ReloadProbe />
+      </PurchasesProvider>,
+    );
+    await screen.findByText('ready : 1');
+
+    savedPurchases = [];
+    await fireEvent.press(screen.getByText('Recharger'));
+
+    expect(await screen.findByText('ready : 0')).toBeTruthy();
+  });
+
+  it('reports an error when the reload fails', async () => {
+    let isStorageBroken = false;
+    const flakyStorage: PurchaseStorage = {
+      ...createInMemoryPurchaseStorage([]),
+      getAll: async () => {
+        if (isStorageBroken) throw new StorageError('read');
+        return [headphones];
+      },
+    };
+
+    function ReloadProbe() {
+      const { status, reload } = usePurchases();
+
+      return (
+        <Pressable onPress={reload}>
+          <Text>Recharger</Text>
+          <Text>{status}</Text>
+        </Pressable>
+      );
+    }
+
+    await render(
+      <PurchasesProvider storage={flakyStorage}>
+        <ReloadProbe />
+      </PurchasesProvider>,
+    );
+    await screen.findByText('ready');
+
+    isStorageBroken = true;
+    await fireEvent.press(screen.getByText('Recharger'));
+
+    expect(await screen.findByText('error')).toBeTruthy();
+  });
+
   it('refuses to be used outside the provider', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 

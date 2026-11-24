@@ -58,4 +58,20 @@ describe('createInMemoryPurchaseStorage', () => {
 
     expect(initialPurchases).toEqual([headphones]);
   });
+
+  it('leaves the list unchanged when the updated purchase is unknown', async () => {
+    const storage = createInMemoryPurchaseStorage([headphones]);
+
+    await storage.update({ ...headphones, id: 'unknown', name: 'Inconnu' });
+
+    expect(await storage.getAll()).toEqual([headphones]);
+  });
+
+  it('leaves the list unchanged when the removed purchase is unknown', async () => {
+    const storage = createInMemoryPurchaseStorage([headphones]);
+
+    await storage.remove('unknown');
+
+    expect(await storage.getAll()).toEqual([headphones]);
+  });
 });

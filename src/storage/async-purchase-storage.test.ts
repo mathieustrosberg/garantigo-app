@@ -81,6 +81,29 @@ describe('persistence after a restart', () => {
   });
 });
 
+describe('unknown purchases', () => {
+  it('leaves the saved list unchanged when the updated purchase is unknown', async () => {
+    await restartApplication().update({ ...demoHeadphones, id: 'unknown', name: 'Inconnu' });
+
+    expect(await restartApplication().getAll()).toEqual([demoHeadphones]);
+  });
+
+  it('leaves the saved list unchanged when the removed purchase is unknown', async () => {
+    await restartApplication().remove('unknown');
+
+    expect(await restartApplication().getAll()).toEqual([demoHeadphones]);
+  });
+
+  it('keeps the other purchases when one is updated', async () => {
+    const kettle = await restartApplication().add(kettleInput);
+    const renamed: Purchase = { ...demoHeadphones, name: 'Casque sans fil' };
+
+    await restartApplication().update(renamed);
+
+    expect(await restartApplication().getAll()).toEqual([kettle, renamed]);
+  });
+});
+
 describe('storage errors', () => {
   it('reports a read error when the phone storage cannot be read', async () => {
     jest.spyOn(AsyncStorage, 'getItem').mockRejectedValueOnce(new Error('disk unavailable'));
