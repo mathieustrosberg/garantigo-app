@@ -1,9 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { deleteReceiptPhoto } from '@/native/receipt-photos';
 import type { Purchase, PurchaseInput } from '@/purchases/purchase';
 
 import { createAsyncPurchaseStorage, PURCHASES_STORAGE_KEY } from './async-purchase-storage';
 import { StorageError } from './purchase-storage';
+
+// The phone's files do not exist in Jest: only the call to delete the photo is checked.
+jest.mock('@/native/receipt-photos', () => ({ deleteReceiptPhoto: jest.fn() }));
 
 const demoHeadphones: Purchase = {
   id: 'demo-headphones',
@@ -26,6 +30,7 @@ function restartApplication() {
 
 beforeEach(async () => {
   await AsyncStorage.clear();
+  jest.mocked(deleteReceiptPhoto).mockClear();
 });
 
 afterEach(() => {
@@ -144,5 +149,35 @@ describe('storage errors', () => {
     await storage.add(kettleInput).catch(() => {});
 
     expect(await restartApplication().getAll()).toEqual([demoHeadphones]);
+  });
+});
+
+describe('receipt photo of a removed purchase', () => {
+  it('is deleted with the purchase', async () => {
+    const kettle = await restartApplication().add({
+      ...kettleInput,
+      receiptFileName: 'receipt-1.jpg',
+    });
+
+    await restartApplication().remove(kettle.id);
+
+    expect(deleteReceiptPhoto).toHaveBeenCalledWith('receipt-1.jpg');
+  });
+
+  it('is not looked for when the purchase has no photo', async () => {
+    await restartApplication().remove(demoHeadphones.id);
+
+    expect(deleteReceiptPhoto).not.toHaveBeenCalled();
+  });
+
+  it('is kept when the purchase cannot be removed', async () => {
+    const kettle = await restartApplication().add({
+      ...kettleInput,
+      receiptFileName: 'receipt-1.jpg',
+    });
+    jest.spyOn(AsyncStorage, 'setItem').mockRejectedValueOnce(new Error('Disk full'));
+
+    await expect(restartApplication().remove(kettle.id)).rejects.toBeInstanceOf(StorageError);
+    expect(deleteReceiptPhoto).not.toHaveBeenCalled();
   });
 });

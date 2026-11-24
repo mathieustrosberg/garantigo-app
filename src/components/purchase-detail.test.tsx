@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert, type AlertButton } from 'react-native';
 import { HeroUINativeProvider } from 'heroui-native';
 
 import type { Purchase } from '@/purchases/purchase';
+import { StorageError } from '@/storage/purchase-storage';
+import { WRITE_ERROR_MESSAGE } from '@/storage/storage-error-message';
 
 import { PurchaseDetail } from './purchase-detail';
 
@@ -19,11 +22,21 @@ const headphones: Purchase = {
 
 async function renderDetail(
   purchase: Purchase,
-  { onEdit = () => {}, receiptUri }: { onEdit?: () => void; receiptUri?: string } = {},
+  {
+    onEdit = () => {},
+    onDelete = async () => {},
+    receiptUri,
+  }: { onEdit?: () => void; onDelete?: () => Promise<void>; receiptUri?: string } = {},
 ) {
   await render(
     <HeroUINativeProvider config={{ devInfo: { stylingPrinciples: false } }}>
-      <PurchaseDetail purchase={purchase} today={TODAY} receiptUri={receiptUri} onEdit={onEdit} />
+      <PurchaseDetail
+        purchase={purchase}
+        today={TODAY}
+        receiptUri={receiptUri}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </HeroUINativeProvider>,
   );
 }
@@ -103,5 +116,78 @@ describe('PurchaseDetail', () => {
     await renderDetail({ ...headphones, receiptFileName: 'receipt-1.jpg' });
 
     expect(screen.getByText('La photo du ticket est introuvable sur ce téléphone.')).toBeTruthy();
+  });
+
+  describe('deletion', () => {
+    let alert: jest.SpyInstance;
+
+    beforeEach(() => {
+      alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      alert.mockRestore();
+    });
+
+    /** Presses one of the buttons of the confirmation shown by Alert.alert. */
+    async function answerConfirmation(text: string) {
+      const buttons: AlertButton[] = alert.mock.calls[0][2];
+      await buttons.find((button) => button.text === text)?.onPress?.();
+    }
+
+    it('asks for a confirmation before deleting', async () => {
+      const onDelete = jest.fn(async () => {});
+      await renderDetail(headphones, { onDelete });
+
+      await fireEvent.press(screen.getByText('Supprimer'));
+
+      expect(alert).toHaveBeenCalledWith(
+        'Supprimer cet achat ?',
+        '« Casque audio » sera supprimé. Cette action est définitive.',
+        expect.any(Array),
+      );
+      expect(onDelete).not.toHaveBeenCalled();
+    });
+
+    it('warns that the receipt photo will be deleted too', async () => {
+      await renderDetail({ ...headphones, receiptFileName: 'receipt-1.jpg' });
+
+      await fireEvent.press(screen.getByText('Supprimer'));
+
+      expect(alert.mock.calls[0][1]).toBe(
+        '« Casque audio » et la photo de son ticket seront supprimés. Cette action est définitive.',
+      );
+    });
+
+    it('deletes the purchase once confirmed', async () => {
+      const onDelete = jest.fn(async () => {});
+      await renderDetail(headphones, { onDelete });
+
+      await fireEvent.press(screen.getByText('Supprimer'));
+      await answerConfirmation('Supprimer');
+
+      expect(onDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the purchase when the user cancels', async () => {
+      const onDelete = jest.fn(async () => {});
+      await renderDetail(headphones, { onDelete });
+
+      await fireEvent.press(screen.getByText('Supprimer'));
+      await answerConfirmation('Annuler');
+
+      expect(onDelete).not.toHaveBeenCalled();
+    });
+
+    it('explains the error when the purchase cannot be deleted', async () => {
+      const onDelete = jest.fn(() => Promise.reject(new StorageError('write')));
+      await renderDetail(headphones, { onDelete });
+
+      await fireEvent.press(screen.getByText('Supprimer'));
+      await answerConfirmation('Supprimer');
+
+      expect(await screen.findByText(WRITE_ERROR_MESSAGE)).toBeTruthy();
+      expect(screen.getByText('Supprimer')).toBeTruthy();
+    });
   });
 });

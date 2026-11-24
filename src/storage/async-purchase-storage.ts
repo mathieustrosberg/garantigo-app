@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { deleteReceiptPhoto } from '@/native/receipt-photos';
 import { createPurchaseId, type Purchase } from '@/purchases/purchase';
 
 import { StorageError, type PurchaseStorage } from './purchase-storage';
@@ -45,7 +46,13 @@ export function createAsyncPurchaseStorage(firstLaunchPurchases: Purchase[]): Pu
 
     async remove(id) {
       const purchases = await getAll();
+      const removedPurchase = purchases.find((purchase) => purchase.id === id);
       await save(purchases.filter((purchase) => purchase.id !== id));
+
+      // The photo is deleted only once the list is saved: a failed save keeps both.
+      if (removedPurchase?.receiptFileName !== undefined) {
+        deleteReceiptPhoto(removedPurchase.receiptFileName);
+      }
     },
   };
 }
