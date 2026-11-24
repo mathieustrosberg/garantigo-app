@@ -32,19 +32,20 @@ export async function takeReceiptPhoto(): Promise<TakeReceiptPhotoResult> {
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.7 });
     if (result.canceled) return { status: 'cancelled' };
 
-    return { status: 'taken', fileName: saveReceiptPhoto(result.assets[0].uri) };
+    return { status: 'taken', fileName: await saveReceiptPhoto(result.assets[0].uri) };
   } catch {
     return { status: 'failed' };
   }
 }
 
 /** Copies a photo out of the camera's temporary cache and returns its new file name. */
-function saveReceiptPhoto(temporaryUri: string): string {
+async function saveReceiptPhoto(temporaryUri: string): Promise<string> {
   const directory = getReceiptsDirectory();
   directory.create({ idempotent: true });
 
   const fileName = `receipt-${createPurchaseId()}.jpg`;
-  new File(temporaryUri).copy(new File(directory, fileName));
+  // Waiting for the copy keeps a failed copy inside the try/catch of takeReceiptPhoto.
+  await new File(temporaryUri).copy(new File(directory, fileName));
   return fileName;
 }
 
