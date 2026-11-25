@@ -13,7 +13,7 @@ export async function syncPurchases(
   remote: RemotePurchases,
 ): Promise<boolean> {
   const remotePurchases = await remote.fetchAll();
-  const result = await storage.mergeWithRemote(remotePurchases);
+  const result = await storage.mergeWithRemote(remotePurchases, remote.accountId);
 
   await remote.upload(result.toUpload);
   await remote.markDeleted(result.toDeleteOnline);

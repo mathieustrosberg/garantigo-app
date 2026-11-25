@@ -2,6 +2,7 @@ import type { Purchase, PurchaseInput } from '@/purchases/purchase';
 import { createInMemoryPurchaseStorage } from '@/storage/in-memory-purchase-storage';
 
 import { createInMemoryChangeLogStore } from './change-log-store';
+import { createInMemoryOwnerStore } from './owner-store';
 import { createInMemoryRemotePurchases, type RemotePurchases } from './remote-purchases';
 import { syncPurchases } from './sync-purchases';
 import { createTrackedPurchaseStorage } from './tracked-purchase-storage';
@@ -30,6 +31,7 @@ function createPhone(getNow: () => string, firstLaunchPurchases: Purchase[] = []
   return createTrackedPurchaseStorage(
     createInMemoryPurchaseStorage(firstLaunchPurchases),
     createInMemoryChangeLogStore(),
+    createInMemoryOwnerStore(),
     { getNow },
   );
 }
@@ -196,5 +198,64 @@ describe('syncPurchases, when the network fails', () => {
     await syncPurchases(otherPhone, account);
 
     expect(await getNames(otherPhone)).toEqual(['Bouilloire']);
+  });
+});
+
+describe('syncPurchases, with two accounts on the same phone', () => {
+  it('gives the purchases made before the first sign-in to the first account', async () => {
+    const phone = createPhone(createClock(), [demoHeadphones]);
+    const marie = createInMemoryRemotePurchases('marie');
+
+    await syncPurchases(phone, marie);
+
+    expect(await getNames(phone)).toEqual(['Casque audio']);
+    expect((await marie.fetchAll()).map((remote) => remote.purchase.name)).toEqual([
+      'Casque audio',
+    ]);
+  });
+
+  it('never gives the purchases of an account to the next one that signs in', async () => {
+    const phone = createPhone(createClock());
+    const marie = createInMemoryRemotePurchases('marie');
+    const paul = createInMemoryRemotePurchases('paul');
+    await phone.add(kettleInput);
+    await syncPurchases(phone, marie);
+
+    const hasChanged = await syncPurchases(phone, paul);
+
+    expect(await phone.getAll()).toEqual([]);
+    expect(await paul.fetchAll()).toEqual([]);
+    expect(hasChanged).toBe(true);
+  });
+
+  it('does not delete online the purchases of the account that left the phone', async () => {
+    const phone = createPhone(createClock());
+    const marie = createInMemoryRemotePurchases('marie');
+    const paul = createInMemoryRemotePurchases('paul');
+    await phone.add(kettleInput);
+    await syncPurchases(phone, marie);
+
+    await syncPurchases(phone, paul);
+    await syncPurchases(phone, marie);
+
+    expect(await getNames(phone)).toEqual(['Bouilloire']);
+    expect((await marie.fetchAll()).every((remote) => !remote.isDeleted)).toBe(true);
+  });
+
+  it('keeps the purchases of each account apart', async () => {
+    const getNow = createClock();
+    const phone = createPhone(getNow);
+    const marie = createInMemoryRemotePurchases('marie');
+    const paul = createInMemoryRemotePurchases('paul');
+
+    await phone.add({ ...kettleInput, name: 'Achat de Marie' });
+    await syncPurchases(phone, marie);
+    await syncPurchases(phone, paul);
+    await phone.add({ ...kettleInput, name: 'Achat de Paul' });
+    await syncPurchases(phone, paul);
+
+    expect(await getNames(phone)).toEqual(['Achat de Paul']);
+    await syncPurchases(phone, marie);
+    expect(await getNames(phone)).toEqual(['Achat de Marie']);
   });
 });

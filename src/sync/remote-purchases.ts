@@ -6,6 +6,8 @@ import type { RemotePurchase } from './merge-purchases';
 
 /** Everything the synchronisation needs from the online copy of one account. */
 export interface RemotePurchases {
+  /** Id of the account this copy belongs to. */
+  readonly accountId: string;
   /** Every purchase of the account, the deleted ones included. */
   fetchAll(): Promise<RemotePurchase[]>;
   /** Creates the purchases online, or replaces them when they already exist. */
@@ -44,6 +46,8 @@ export function createSupabaseRemotePurchases(
   userId: string,
 ): RemotePurchases {
   return {
+    accountId: userId,
+
     async fetchAll() {
       // The access rules of the database only give the rows of the signed-in account.
       const { data, error } = await client.from(TABLE).select('*');
@@ -106,10 +110,12 @@ function toRemotePurchase(row: PurchaseRow): RemotePurchase {
 }
 
 /** An online copy kept in memory. In tests, two phones share it like a real account. */
-export function createInMemoryRemotePurchases(): RemotePurchases {
+export function createInMemoryRemotePurchases(accountId = 'test-account'): RemotePurchases {
   const rows = new Map<string, RemotePurchase>();
 
   return {
+    accountId,
+
     async fetchAll() {
       return [...rows.values()];
     },

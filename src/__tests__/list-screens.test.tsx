@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { HeroUINativeProvider } from 'heroui-native';
 import type { ReactElement } from 'react';
 
+import { AccountProvider } from '@/account/account-context';
 import PurchasesScreen from '@/app/(tabs)/index';
 import WarrantiesScreen from '@/app/(tabs)/warranties';
 import type { Purchase } from '@/purchases/purchase';
@@ -49,9 +50,12 @@ const PURCHASE_NAMES = /^(Casque audio|Machine à café|Aspirateur)$/;
 async function renderScreen(screenElement: ReactElement, purchases: Purchase[]) {
   await render(
     <HeroUINativeProvider config={{ devInfo: { stylingPrinciples: false } }}>
-      <PurchasesProvider storage={createInMemoryPurchaseStorage(purchases)}>
-        {screenElement}
-      </PurchasesProvider>
+      {/* No online service in these tests: the screens work on the phone only. */}
+      <AccountProvider client={null}>
+        <PurchasesProvider storage={createInMemoryPurchaseStorage(purchases)}>
+          {screenElement}
+        </PurchasesProvider>
+      </AccountProvider>
     </HeroUINativeProvider>,
   );
 }
