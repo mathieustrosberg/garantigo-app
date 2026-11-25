@@ -7,8 +7,10 @@ import { PurchasesProvider, usePurchases } from '@/storage/purchases-context';
 
 import { createInMemoryChangeLogStore } from './change-log-store';
 import { createInMemoryOwnerStore } from './owner-store';
+import { createInMemoryRemotePhotos } from './remote-photos';
 import { createInMemoryRemotePurchases, type RemotePurchases } from './remote-purchases';
 import { SyncProvider, useSync } from './sync-context';
+import type { LocalPhotos, RemotePhotos } from './sync-photos';
 import { createTrackedPurchaseStorage } from './tracked-purchase-storage';
 
 const NOW = '2026-11-24T10:00:00.000Z';
@@ -49,7 +51,25 @@ function Probe() {
   );
 }
 
-async function renderProbe(remote: RemotePurchases | null) {
+/** A phone without any receipt photo, which keeps the name of what it downloads. */
+function createPhonePhotos() {
+  const downloadedNames: string[] = [];
+  const photos: LocalPhotos = {
+    has: (fileName) => downloadedNames.includes(fileName),
+    read: async () => new ArrayBuffer(0),
+    download: async (_url, fileName) => {
+      downloadedNames.push(fileName);
+    },
+  };
+  return { photos, downloadedNames };
+}
+
+type RenderOptions = {
+  localPhotos?: LocalPhotos;
+  remotePhotos?: RemotePhotos;
+};
+
+async function renderProbe(remote: RemotePurchases | null, options: RenderOptions = {}) {
   const storage = createTrackedPurchaseStorage(
     createInMemoryPurchaseStorage([headphones]),
     createInMemoryChangeLogStore(),
@@ -58,7 +78,14 @@ async function renderProbe(remote: RemotePurchases | null) {
 
   await render(
     <PurchasesProvider storage={storage}>
-      <SyncProvider storage={storage} remote={remote}>
+      <SyncProvider
+        storage={storage}
+        remote={remote}
+        localPhotos={options.localPhotos ?? createPhonePhotos().photos}
+        remotePhotos={
+          remote === null ? null : (options.remotePhotos ?? createInMemoryRemotePhotos())
+        }
+      >
         <Probe />
       </SyncProvider>
     </PurchasesProvider>,
@@ -110,6 +137,36 @@ describe('SyncProvider', () => {
       expect(await getOnlineNames(account)).toEqual(['Bouilloire', 'Casque audio']);
     });
     expect(await screen.findByText('synced : Bouilloire, Casque audio')).toBeTruthy();
+  });
+
+  it('downloads the receipt photo of a purchase that comes from the account', async () => {
+    const account = createInMemoryRemotePurchases();
+    await account.upload([
+      {
+        purchase: { ...toaster, receiptFileName: 'receipt-1.jpg' },
+        changedAt: NOW,
+        isDeleted: false,
+      },
+    ]);
+    const remotePhotos = createInMemoryRemotePhotos();
+    await remotePhotos.upload('receipt-1.jpg', new ArrayBuffer(4));
+    const phone = createPhonePhotos();
+
+    await renderProbe(account, { localPhotos: phone.photos, remotePhotos });
+    await screen.findByText('synced : Casque audio, Grille-pain');
+
+    expect(phone.downloadedNames).toEqual(['receipt-1.jpg']);
+  });
+
+  it('says that the synchronisation failed when the photos cannot be reached', async () => {
+    const remotePhotos: RemotePhotos = {
+      ...createInMemoryRemotePhotos(),
+      list: () => Promise.reject(new Error('offline')),
+    };
+
+    await renderProbe(createInMemoryRemotePurchases(), { remotePhotos });
+
+    expect(await screen.findByText('failed : Casque audio')).toBeTruthy();
   });
 
   it('keeps the purchases of the phone and says so when the network fails', async () => {
