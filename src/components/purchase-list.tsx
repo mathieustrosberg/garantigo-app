@@ -30,6 +30,8 @@ type PurchaseListProps = {
   today: string;
   /** Search and sort controls, shown above the purchases. */
   controls?: ReactNode;
+  /** Optional button shown next to the title, for example to open the account. */
+  titleAction?: ReactNode;
   onOpenPurchase: (purchaseId: string) => void;
   onAddPurchase: () => void;
 };
@@ -40,13 +42,14 @@ export function PurchaseList({
   today,
   warrantyCounts = countPurchasesByWarrantyStatus(purchases, today),
   controls,
+  titleAction,
   onOpenPurchase,
   onAddPurchase,
 }: PurchaseListProps) {
   if (totalCount === 0) {
     return (
       <View className="gap-5 p-6">
-        <ScreenTitle title="Mes achats" subtitle={SUBTITLE} />
+        <ScreenTitle title="Mes achats" subtitle={SUBTITLE} action={titleAction} />
         <EmptyState
           title="Aucun achat"
           description="Ajoutez votre premier achat pour suivre la fin de sa garantie."
@@ -67,7 +70,7 @@ export function PurchaseList({
       contentContainerClassName="gap-3 p-6"
       ListHeaderComponent={
         <View className="gap-5">
-          <ScreenTitle title="Mes achats" subtitle={SUBTITLE} />
+          <ScreenTitle title="Mes achats" subtitle={SUBTITLE} action={titleAction} />
           <PurchaseOverview totalCount={totalCount} counts={warrantyCounts} />
           {controls}
           <ListHeading

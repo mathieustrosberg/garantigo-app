@@ -6,6 +6,7 @@ import { createInMemoryPurchaseStorage } from '@/storage/in-memory-purchase-stor
 import { PurchasesProvider, usePurchases } from '@/storage/purchases-context';
 
 import { createInMemoryChangeLogStore } from './change-log-store';
+import { createInMemoryOwnerStore } from './owner-store';
 import { createInMemoryRemotePurchases, type RemotePurchases } from './remote-purchases';
 import { SyncProvider, useSync } from './sync-context';
 import { createTrackedPurchaseStorage } from './tracked-purchase-storage';
@@ -52,6 +53,7 @@ async function renderProbe(remote: RemotePurchases | null) {
   const storage = createTrackedPurchaseStorage(
     createInMemoryPurchaseStorage([headphones]),
     createInMemoryChangeLogStore(),
+    createInMemoryOwnerStore(),
   );
 
   await render(

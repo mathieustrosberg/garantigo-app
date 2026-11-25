@@ -12,6 +12,7 @@ import type { PurchaseInput } from '@/purchases/purchase';
 import { createInMemoryPurchaseStorage } from '@/storage/in-memory-purchase-storage';
 
 import { createInMemoryChangeLogStore } from './change-log-store';
+import { createInMemoryOwnerStore } from './owner-store';
 import { createSupabaseRemotePurchases, type RemotePurchases } from './remote-purchases';
 import { createCloudClient } from './supabase-client';
 import { syncPurchases } from './sync-purchases';
@@ -42,6 +43,7 @@ function createPhone() {
   return createTrackedPurchaseStorage(
     createInMemoryPurchaseStorage([]),
     createInMemoryChangeLogStore(),
+    createInMemoryOwnerStore(),
   );
 }
 

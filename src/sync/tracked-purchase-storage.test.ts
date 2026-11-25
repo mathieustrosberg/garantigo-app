@@ -2,6 +2,7 @@ import type { PurchaseInput } from '@/purchases/purchase';
 import { createInMemoryPurchaseStorage } from '@/storage/in-memory-purchase-storage';
 
 import { createInMemoryChangeLogStore } from './change-log-store';
+import { createInMemoryOwnerStore } from './owner-store';
 import { createTrackedPurchaseStorage } from './tracked-purchase-storage';
 
 const NOW = '2026-11-24T10:00:00.000Z';
@@ -14,9 +15,12 @@ const kettleInput: PurchaseInput = {
 
 function createStorage() {
   const changeLog = createInMemoryChangeLogStore();
-  const storage = createTrackedPurchaseStorage(createInMemoryPurchaseStorage([]), changeLog, {
-    getNow: () => NOW,
-  });
+  const storage = createTrackedPurchaseStorage(
+    createInMemoryPurchaseStorage([]),
+    changeLog,
+    createInMemoryOwnerStore(),
+    { getNow: () => NOW },
+  );
   return { storage, changeLog };
 }
 
@@ -77,18 +81,21 @@ describe('createTrackedPurchaseStorage', () => {
     const listener = jest.fn();
     storage.onLocalChange(listener);
 
-    await storage.mergeWithRemote([
-      {
-        purchase: {
-          id: 'toaster',
-          name: 'Grille-pain',
-          purchaseDate: '2026-03-01',
-          warrantyMonths: 24,
+    await storage.mergeWithRemote(
+      [
+        {
+          purchase: {
+            id: 'toaster',
+            name: 'Grille-pain',
+            purchaseDate: '2026-03-01',
+            warrantyMonths: 24,
+          },
+          changedAt: NOW,
+          isDeleted: false,
         },
-        changedAt: NOW,
-        isDeleted: false,
-      },
-    ]);
+      ],
+      'account-1',
+    );
 
     expect(listener).not.toHaveBeenCalled();
     expect((await storage.getAll()).map((purchase) => purchase.name)).toEqual(['Grille-pain']);
@@ -98,7 +105,10 @@ describe('createTrackedPurchaseStorage', () => {
     const { storage } = createStorage();
 
     // Both start at the same time: the queue runs them one after the other.
-    const [, kettle] = await Promise.all([storage.mergeWithRemote([]), storage.add(kettleInput)]);
+    const [, kettle] = await Promise.all([
+      storage.mergeWithRemote([], 'account-1'),
+      storage.add(kettleInput),
+    ]);
 
     expect(await storage.getAll()).toEqual([kettle]);
   });
@@ -106,7 +116,7 @@ describe('createTrackedPurchaseStorage', () => {
   it('keeps working after a change that failed', async () => {
     const { storage } = createStorage();
 
-    await expect(storage.mergeWithRemote(null as never)).rejects.toThrow();
+    await expect(storage.mergeWithRemote(null as never, 'account-1')).rejects.toThrow();
     const kettle = await storage.add(kettleInput);
 
     expect(await storage.getAll()).toEqual([kettle]);

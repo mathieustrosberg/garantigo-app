@@ -7,7 +7,7 @@
 
 - Les achats et les photos restent aujourd'hui sur le téléphone (voir [ADR-003](003-local-persistence.md) et [ADR-004](004-receipt-photos.md)). Changer de téléphone fait tout perdre, et deux appareils ne voient jamais la même liste.
 - L'application doit continuer à fonctionner sans connexion : c'est une exigence du projet. La synchronisation s'ajoute, elle ne remplace pas le stockage local.
-- Sans compte, l'application doit rester utilisable comme avant.
+- Les achats appartiennent à un compte : personne ne doit voir ceux d'un autre, même sur un téléphone partagé.
 - La solution doit fonctionner dans Expo Go (voir [ADR-001](001-react-native-expo.md)), donc sans module natif supplémentaire.
 - La CI ne doit demander aucun secret.
 - Nous n'avons ni le temps ni le besoin d'écrire et d'héberger notre propre serveur.
@@ -30,7 +30,11 @@ La synchronisation suit le principe **« le téléphone d'abord »** :
 5. Un achat supprimé n'est pas effacé en ligne : il est marqué comme supprimé, pour que les autres téléphones le suppriment à leur tour. Le journal du téléphone garde lui aussi la trace des suppressions.
 6. Un achat dont la date de modification est inconnue (un achat de démonstration, par exemple) est considéré comme le plus ancien : il ne peut jamais écraser un vrai changement.
 
-L'adresse du projet et sa clé publique sont lues dans le fichier `.env`. Cette clé est faite pour être publique : ce sont les règles d'accès de la base qui protègent les données. Si le fichier est absent, l'application ne propose pas de compte et fonctionne uniquement sur le téléphone.
+Le compte est **obligatoire** : sans compte connecté, l'application n'affiche que l'accueil, avec la connexion et l'inscription. La session est conservée sur le téléphone : une fois connecté, on rouvre l'application sans réseau et sans rien ressaisir.
+
+La copie du téléphone appartient à un seul compte. Si un autre compte se connecte sur le même téléphone, elle est vidée avant d'être remplie avec les achats de ce compte : rien ne passe d'un compte à l'autre, et rien n'est supprimé en ligne.
+
+L'adresse du projet et sa clé publique sont lues dans le fichier `.env`. Cette clé est faite pour être publique : ce sont les règles d'accès de la base qui protègent les données. Si le fichier est absent, l'application ne demande pas de compte et fonctionne uniquement sur le téléphone : c'est le cas dans les tests.
 
 Alternatives écartées :
 
@@ -43,11 +47,15 @@ Alternatives écartées :
 ## Conséquences et limites
 
 - **+** Changer de téléphone ne fait plus rien perdre : il suffit de se connecter.
-- **+** Le mode hors ligne est conservé, et l'application reste utilisable sans compte.
+- **+** Le mode hors ligne est conservé une fois connecté : les changements faits sans réseau partent à la synchronisation suivante.
+- **−** La première connexion demande du réseau, et l'application n'est plus utilisable sans compte.
 - **+** Les écrans ne changent presque pas : ils passent toujours par l'interface `PurchaseStorage`.
 - **+** Les tests simulent le service en ligne : la CI ne contacte aucun serveur et n'a besoin d'aucun secret.
 - **+** Le modèle `Purchase` n'est pas modifié : les dates de modification sont rangées à part, sous la clé `garantigo.changes.v1`.
-- **−** Se déconnecter laisse les achats sur le téléphone. Se connecter ensuite à un autre compte les fusionne avec ceux de ce compte : acceptable pour un téléphone personnel.
+- **−** Si un autre compte se connecte sur le téléphone, les changements du compte précédent qui n'avaient pas encore été envoyés sont perdus.
+- **−** Avec le service en ligne, il n'y a plus d'achats de démonstration : un nouveau compte commence vide. Ils ne servent plus que sans service en ligne, et dans les tests.
+- **−** Les achats déjà présents sur un téléphone avant sa toute première connexion sont rattachés au premier compte qui s'y connecte, pour ne rien perdre.
+- **−** Il n'y a pas de « mot de passe oublié » : il demanderait l'envoi d'e-mails et un lien qui rouvre l'application.
 - **−** « La plus récente gagne » peut écraser une modification faite hors ligne sur un autre téléphone. C'est acceptable pour une liste personnelle.
 - **−** La date de modification vient de l'horloge du téléphone : une horloge déréglée peut fausser l'arbitrage.
 - **−** Un autre téléphone ne voit un changement qu'à sa prochaine synchronisation, pas à la seconde.

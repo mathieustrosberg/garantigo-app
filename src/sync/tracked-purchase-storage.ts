@@ -2,14 +2,18 @@ import type { PurchaseStorage } from '@/storage/purchase-storage';
 
 import type { ChangeLogStore } from './change-log-store';
 import { mergePurchases, type MergeResult, type RemotePurchase } from './merge-purchases';
+import type { OwnerStore } from './owner-store';
 
 /** A purchase storage that remembers when each purchase changed, so it can be synchronised. */
 export interface TrackedPurchaseStorage extends PurchaseStorage {
   /**
-   * Merges the online purchases into the phone copy and saves the result on the phone.
-   * Returns what must then be sent online.
+   * Merges the online purchases of an account into the phone copy and saves the result
+   * on the phone. Returns what must then be sent online.
+   *
+   * The phone copy belongs to one account. When another account signs in, the copy is
+   * emptied first: nobody receives the purchases of someone else.
    */
-  mergeWithRemote(remotePurchases: RemotePurchase[]): Promise<MergeResult>;
+  mergeWithRemote(remotePurchases: RemotePurchase[], accountId: string): Promise<MergeResult>;
   /** Calls `listener` after each purchase added, changed or removed on this phone. */
   onLocalChange(listener: () => void): () => void;
 }
@@ -26,6 +30,7 @@ type Options = {
 export function createTrackedPurchaseStorage(
   storage: PurchaseStorage,
   changeLog: ChangeLogStore,
+  ownerStore: OwnerStore,
   { getNow = () => new Date().toISOString() }: Options = {},
 ): TrackedPurchaseStorage {
   const runAlone = createQueue();
@@ -69,13 +74,21 @@ export function createTrackedPurchaseStorage(
     replaceAll: (purchases) => runAlone(() => storage.replaceAll(purchases)),
 
     // Not a change made by the user: the listeners are not told, or it would never stop.
-    mergeWithRemote: (remotePurchases) =>
+    mergeWithRemote: (remotePurchases, accountId) =>
       runAlone(async () => {
-        const local = { purchases: await storage.getAll(), changes: await changeLog.read() };
+        const owner = await ownerStore.read();
+        // No owner yet: the purchases made before the first sign-in go to this account.
+        const belongsToAnotherAccount = owner !== null && owner !== accountId;
+
+        const local = belongsToAnotherAccount
+          ? { purchases: [], changes: {} }
+          : { purchases: await storage.getAll(), changes: await changeLog.read() };
         const result = mergePurchases(local, remotePurchases);
+        if (belongsToAnotherAccount) result.hasLocalChanges = true;
 
         if (result.hasLocalChanges) await storage.replaceAll(result.purchases);
         await changeLog.write(result.changes);
+        if (owner !== accountId) await ownerStore.write(accountId);
         return result;
       }),
 
