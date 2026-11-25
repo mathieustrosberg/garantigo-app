@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
 import { formatStoredDate, fromStoredDate, toStoredDate } from '@/purchases/purchase-date';
+import { useBrandTint } from '@/theme/brand-colors';
 
 type DateFieldProps = {
   label: string;
@@ -21,6 +22,7 @@ type DateFieldProps = {
  */
 export function DateField({ label, value, onChange, maximumDate, errorMessage }: DateFieldProps) {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const brandTint = useBrandTint();
   const pickerValue = fromStoredDate(value) ?? new Date();
   const pickerMaximumDate = fromStoredDate(maximumDate) ?? undefined;
   const formattedValue = formatStoredDate(value);
@@ -69,6 +71,7 @@ export function DateField({ label, value, onChange, maximumDate, errorMessage }:
           mode="date"
           display="inline"
           locale="fr-FR"
+          accentColor={brandTint}
           maximumDate={pickerMaximumDate}
           onValueChange={(_event, pickedDate) => handlePickedDate(pickedDate)}
         />

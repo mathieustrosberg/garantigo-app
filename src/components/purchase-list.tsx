@@ -1,12 +1,17 @@
-import { Button } from 'heroui-native';
 import type { ReactNode } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 
 import type { Purchase } from '@/purchases/purchase';
 import { getWarranty } from '@/purchases/warranty';
+import { countPurchasesByWarrantyStatus, type WarrantyCounts } from '@/purchases/warranty-groups';
 
 import { EmptyState } from './empty-state';
+import { ListHeading } from './list-heading';
 import { PurchaseCard } from './purchase-card';
+import { PurchaseOverview } from './purchase-overview';
+import { ScreenTitle } from './screen-title';
+
+const SUBTITLE = 'Tous vos achats, au même endroit.';
 
 type PurchaseListProps = {
   /** The purchases to show, in the order they are given: the list never sorts them. */
@@ -16,6 +21,11 @@ type PurchaseListProps = {
    * It tells "no purchase at all" apart from "no purchase matches the search".
    */
   totalCount?: number;
+  /**
+   * Number of saved purchases in each warranty status, before any search.
+   * Defaults to the statuses of the purchases shown.
+   */
+  warrantyCounts?: WarrantyCounts;
   /** 'YYYY-MM-DD', passed by the screen so that tests never depend on the real date. */
   today: string;
   /** Search and sort controls, shown above the purchases. */
@@ -28,14 +38,15 @@ export function PurchaseList({
   purchases,
   totalCount = purchases.length,
   today,
+  warrantyCounts = countPurchasesByWarrantyStatus(purchases, today),
   controls,
   onOpenPurchase,
   onAddPurchase,
 }: PurchaseListProps) {
   if (totalCount === 0) {
     return (
-      <View className="gap-4 p-6">
-        <Text className="text-3xl font-bold text-foreground">Mes achats</Text>
+      <View className="gap-5 p-6">
+        <ScreenTitle title="Mes achats" subtitle={SUBTITLE} />
         <EmptyState
           title="Aucun achat"
           description="Ajoutez votre premier achat pour suivre la fin de sa garantie."
@@ -55,11 +66,14 @@ export function PurchaseList({
       keyboardDismissMode="on-drag"
       contentContainerClassName="gap-3 p-6"
       ListHeaderComponent={
-        <View className="gap-4">
-          <Text className="text-3xl font-bold text-foreground">Mes achats</Text>
-          <Text className="text-base text-muted">{getPurchaseCountLabel(totalCount)}</Text>
-          <Button onPress={onAddPurchase}>Ajouter un achat</Button>
+        <View className="gap-5">
+          <ScreenTitle title="Mes achats" subtitle={SUBTITLE} />
+          <PurchaseOverview totalCount={totalCount} counts={warrantyCounts} />
           {controls}
+          <ListHeading
+            title={purchases.length === totalCount ? 'Tous les achats' : 'Résultats'}
+            count={purchases.length}
+          />
         </View>
       }
       ListEmptyComponent={
@@ -77,8 +91,4 @@ export function PurchaseList({
       )}
     />
   );
-}
-
-function getPurchaseCountLabel(count: number): string {
-  return count === 1 ? '1 achat enregistré.' : `${count} achats enregistrés.`;
 }

@@ -8,6 +8,7 @@ import { PurchaseListControls } from '@/components/purchase-list-controls';
 import { getToday } from '@/purchases/purchase-date';
 import { searchPurchases } from '@/purchases/purchase-search';
 import { sortPurchases, type PurchaseSortKey } from '@/purchases/purchase-sort';
+import { countPurchasesByWarrantyStatus } from '@/purchases/warranty-groups';
 import { usePurchases } from '@/storage/purchases-context';
 
 export default function PurchasesScreen() {
@@ -15,7 +16,10 @@ export default function PurchasesScreen() {
   const { purchases } = usePurchases();
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<PurchaseSortKey>('purchaseDate');
+  const today = getToday();
   const visiblePurchases = sortPurchases(searchPurchases(purchases, query), sortKey);
+  // Counted on every saved purchase: the search must not change the summary.
+  const warrantyCounts = countPurchasesByWarrantyStatus(purchases, today);
 
   return (
     <View className="flex-1 bg-background">
@@ -23,7 +27,8 @@ export default function PurchasesScreen() {
         <PurchaseList
           purchases={visiblePurchases}
           totalCount={purchases.length}
-          today={getToday()}
+          warrantyCounts={warrantyCounts}
+          today={today}
           controls={
             <PurchaseListControls
               query={query}

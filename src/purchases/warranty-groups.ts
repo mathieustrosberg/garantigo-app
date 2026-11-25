@@ -9,6 +9,9 @@ export type PurchaseWithWarranty = {
 
 export type WarrantyGroups = Record<WarrantyStatus, PurchaseWithWarranty[]>;
 
+/** Number of purchases in each warranty status. */
+export type WarrantyCounts = Record<WarrantyStatus, number>;
+
 /**
  * Sorts the purchases into the three warranty statuses.
  * Inside each group, the warranty closest to today comes first.
@@ -32,6 +35,20 @@ export function groupPurchasesByWarrantyStatus(
   groups.expired.sort((first, second) => byRemainingDays(second, first));
 
   return groups;
+}
+
+/** Counts the purchases in each warranty status, for the summary above the list. */
+export function countPurchasesByWarrantyStatus(
+  purchases: Purchase[],
+  today: string,
+): WarrantyCounts {
+  const counts: WarrantyCounts = { expiringSoon: 0, active: 0, expired: 0 };
+
+  for (const purchase of purchases) {
+    counts[getWarranty(purchase, today).status] += 1;
+  }
+
+  return counts;
 }
 
 function byRemainingDays(first: PurchaseWithWarranty, second: PurchaseWithWarranty): number {

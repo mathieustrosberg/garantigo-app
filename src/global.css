@@ -2,3 +2,47 @@
 @import 'uniwind';
 
 @import 'heroui-native/styles';
+
+/* Fields as round as the buttons. */
+@theme {
+  --field-radius: calc(var(--radius) * 3);
+}
+
+/*
+ * Colours of the application: a periwinkle blue on a night-blue background in dark mode,
+ * and a deeper shade of the same blue on a light background in light mode.
+ * The accent and background values are also in src/theme/brand-colors.ts: keep both in sync.
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --accent: #4a63e7;
+      --background: #f4f5fa;
+    }
+
+    @variant dark {
+      --background: #0f1115;
+
+      --surface: #171a21;
+      --surface-secondary: #1d2129;
+      --surface-tertiary: #232832;
+      --overlay: #171a21;
+
+      --muted: #9ba2b3;
+      --default: #222630;
+
+      /* The accent is light in dark mode: what is drawn on it must be dark. */
+      --accent: #adbcff;
+      --accent-foreground: #10131a;
+
+      --field-background: #171a21;
+
+      --success: #7fdcaa;
+      --warning: #f5bc7a;
+
+      --segment: #2d3240;
+      --border: #272b36;
+      --separator: #3a3f4c;
+    }
+  }
+}

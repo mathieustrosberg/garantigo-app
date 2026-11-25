@@ -9,16 +9,38 @@ import { PurchasesGate } from '@/components/purchases-gate';
 import { demoPurchases } from '@/data/demo-purchases';
 import { createAsyncPurchaseStorage } from '@/storage/async-purchase-storage';
 import { PurchasesProvider } from '@/storage/purchases-context';
+import {
+  BRAND_COLOR,
+  BRAND_COLOR_ON_DARK,
+  DARK_BACKGROUND,
+  LIGHT_BACKGROUND,
+} from '@/theme/brand-colors';
 
 // The demonstration purchases are only saved on the very first launch.
 const purchaseStorage = createAsyncPurchaseStorage(demoPurchases);
+
+// Navigation themes with the brand colours: the back button, the header buttons and the
+// background shown behind the screens.
+const lightNavigationTheme = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, primary: BRAND_COLOR, background: LIGHT_BACKGROUND },
+};
+const darkNavigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: BRAND_COLOR_ON_DARK,
+    background: DARK_BACKGROUND,
+    card: DARK_BACKGROUND,
+  },
+};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={colorScheme === 'dark' ? darkNavigationTheme : lightNavigationTheme}>
         <HeroUINativeProvider>
           <PurchasesProvider storage={purchaseStorage}>
             <PurchasesGate>
