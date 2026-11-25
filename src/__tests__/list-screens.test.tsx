@@ -67,14 +67,29 @@ beforeEach(() => {
 describe('PurchasesScreen', () => {
   it('shows the purchases, the most recent first', async () => {
     await renderScreen(<PurchasesScreen />, [vacuum, headphones, coffeeMachine]);
-    await screen.findByText('3 achats enregistrés.');
+    await screen.findByLabelText('3 achats enregistrés');
 
     expect(getShownNames()).toEqual(['Casque audio', 'Machine à café', 'Aspirateur']);
   });
 
+  it('counts the warranties that expire soon, whatever the search', async () => {
+    await renderScreen(<PurchasesScreen />, [vacuum, headphones, coffeeMachine]);
+    expect(await screen.findByText('1 garantie expire bientôt.')).toBeTruthy();
+
+    await fireEvent.changeText(screen.getByPlaceholderText('Rechercher un achat'), 'casque');
+
+    expect(screen.getByText('1 garantie expire bientôt.')).toBeTruthy();
+  });
+
+  it('says when no warranty expires soon', async () => {
+    await renderScreen(<PurchasesScreen />, [vacuum, headphones]);
+
+    expect(await screen.findByText('Aucune garantie n’expire bientôt.')).toBeTruthy();
+  });
+
   it('sorts by warranty end when the user asks for it', async () => {
     await renderScreen(<PurchasesScreen />, [vacuum, headphones, coffeeMachine]);
-    await screen.findByText('3 achats enregistrés.');
+    await screen.findByLabelText('3 achats enregistrés');
 
     await fireEvent.press(screen.getByText('Fin de garantie'));
 
@@ -87,7 +102,7 @@ describe('PurchasesScreen', () => {
     await fireEvent.changeText(await screen.findByPlaceholderText('Rechercher un achat'), 'cafe');
 
     expect(getShownNames()).toEqual(['Machine à café']);
-    expect(screen.getByText('3 achats enregistrés.')).toBeTruthy();
+    expect(screen.getByLabelText('3 achats enregistrés')).toBeTruthy();
   });
 
   it('says that the search found nothing and keeps the search field', async () => {
@@ -100,14 +115,12 @@ describe('PurchasesScreen', () => {
     expect(screen.queryByText(PURCHASE_NAMES)).toBeNull();
   });
 
-  it('opens the detail of a purchase and the form to add one', async () => {
+  it('opens the detail of a purchase', async () => {
     await renderScreen(<PurchasesScreen />, [vacuum, headphones, coffeeMachine]);
 
     await fireEvent.press(await screen.findByText('Machine à café'));
-    await fireEvent.press(screen.getByText('Ajouter un achat'));
 
-    expect(mockPush).toHaveBeenNthCalledWith(1, '/purchases/coffee-machine');
-    expect(mockPush).toHaveBeenNthCalledWith(2, '/purchases/new');
+    expect(mockPush).toHaveBeenCalledWith('/purchases/coffee-machine');
   });
 
   it('invites the user to add a first purchase, without search field', async () => {
@@ -122,9 +135,8 @@ describe('WarrantiesScreen', () => {
   it('groups the purchases by warranty status at the current date', async () => {
     await renderScreen(<WarrantiesScreen />, [vacuum, headphones, coffeeMachine]);
 
-    expect(await screen.findByLabelText('Actives : 1')).toBeTruthy();
-    expect(screen.getByLabelText('Bientôt : 1')).toBeTruthy();
-    expect(screen.getByLabelText('Expirées : 1')).toBeTruthy();
+    expect(await screen.findByText('Garantie de Machine à café')).toBeTruthy();
+    expect(screen.getAllByText('1 élément')).toHaveLength(3);
     expect(screen.getByText('18 jours restants')).toBeTruthy();
   });
 

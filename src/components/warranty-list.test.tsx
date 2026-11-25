@@ -48,16 +48,24 @@ async function renderList(purchases: Purchase[], options: RenderOptions = {}) {
 }
 
 describe('WarrantyList', () => {
-  it('counts the purchases of each status', async () => {
+  it('counts the purchases of each group next to its title', async () => {
     await renderList([headphones, coffeeMachine, vacuum]);
 
-    expect(screen.getByLabelText('Actives : 1')).toBeTruthy();
-    expect(screen.getByLabelText('Bientôt : 1')).toBeTruthy();
-    expect(screen.getByLabelText('Expirées : 1')).toBeTruthy();
+    expect(screen.getAllByText('1 élément')).toHaveLength(3);
+  });
+
+  it('only unfolds the warranties that expire soon', async () => {
+    await renderList([headphones, coffeeMachine, vacuum]);
+
+    expect(screen.getByText('Machine à café')).toBeTruthy();
+    expect(screen.queryByText('Casque audio')).toBeNull();
+    expect(screen.queryByText('Aspirateur')).toBeNull();
   });
 
   it('shows each purchase with the end of its warranty and the days left', async () => {
     await renderList([headphones, coffeeMachine, vacuum]);
+    await fireEvent.press(screen.getByText('Garanties actives'));
+    await fireEvent.press(screen.getByText('Garanties expirées'));
 
     expect(screen.getByText('Machine à café')).toBeTruthy();
     expect(screen.getByText('Fin le 12 décembre 2026')).toBeTruthy();
@@ -70,6 +78,24 @@ describe('WarrantyList', () => {
     expect(screen.getByText('Fin le 10 avril 2025')).toBeTruthy();
   });
 
+  it('puts first the warranty that ends first', async () => {
+    await renderList([headphones, coffeeMachine, vacuum]);
+
+    expect(screen.getByText('Garantie de Machine à café')).toBeTruthy();
+  });
+
+  it('falls back on the active warranties when none expires soon', async () => {
+    await renderList([headphones, vacuum]);
+
+    expect(screen.getByText('Garantie de Casque audio')).toBeTruthy();
+  });
+
+  it('says when every warranty has expired', async () => {
+    await renderList([vacuum]);
+
+    expect(screen.getByText('Aucune garantie en cours : elles sont toutes expirées.')).toBeTruthy();
+  });
+
   it('names the three groups', async () => {
     await renderList([headphones, coffeeMachine, vacuum]);
 
@@ -80,6 +106,8 @@ describe('WarrantyList', () => {
 
   it('explains when a group has no purchase', async () => {
     await renderList([headphones]);
+    await fireEvent.press(screen.getByText('Garanties actives'));
+    await fireEvent.press(screen.getByText('Garanties expirées'));
 
     expect(screen.getByText('Aucune garantie n’arrive à échéance dans les 30 jours.')).toBeTruthy();
     expect(screen.getByText('Aucune garantie expirée.')).toBeTruthy();

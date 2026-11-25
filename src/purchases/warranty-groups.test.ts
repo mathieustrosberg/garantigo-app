@@ -1,5 +1,5 @@
 import type { Purchase } from './purchase';
-import { groupPurchasesByWarrantyStatus } from './warranty-groups';
+import { countPurchasesByWarrantyStatus, groupPurchasesByWarrantyStatus } from './warranty-groups';
 
 const TODAY = '2026-11-24';
 
@@ -90,5 +90,29 @@ describe('groupPurchasesByWarrantyStatus', () => {
     groupPurchasesByWarrantyStatus(purchases, TODAY);
 
     expect(purchases.map((purchase) => purchase.name)).toEqual(['B', 'A']);
+  });
+});
+
+describe('countPurchasesByWarrantyStatus', () => {
+  it('counts nothing when there is no purchase', () => {
+    expect(countPurchasesByWarrantyStatus([], TODAY)).toEqual({
+      expiringSoon: 0,
+      active: 0,
+      expired: 0,
+    });
+  });
+
+  it('counts the purchases of each warranty status', () => {
+    const counts = countPurchasesByWarrantyStatus(
+      [
+        createPurchase('Dans 2 ans', '2026-11-18'),
+        createPurchase('Dans 6 mois', '2025-05-21'),
+        createPurchase('Dans 18 jours', '2024-12-12'),
+        createPurchase('Il y a 1 an', '2023-11-10'),
+      ],
+      TODAY,
+    );
+
+    expect(counts).toEqual({ expiringSoon: 1, active: 2, expired: 1 });
   });
 });

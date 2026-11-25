@@ -89,13 +89,13 @@ describe('PurchaseList', () => {
   it('counts the purchases', async () => {
     await renderList([headphones, coffeeMachine, vacuum]);
 
-    expect(screen.getByText('3 achats enregistrés.')).toBeTruthy();
+    expect(screen.getByLabelText('3 achats enregistrés')).toBeTruthy();
   });
 
   it('uses the singular for a single purchase', async () => {
     await renderList([headphones]);
 
-    expect(screen.getByText('1 achat enregistré.')).toBeTruthy();
+    expect(screen.getByLabelText('1 achat enregistré')).toBeTruthy();
   });
 
   it('opens a purchase when its card is pressed', async () => {
@@ -107,21 +107,12 @@ describe('PurchaseList', () => {
     expect(onOpenPurchase).toHaveBeenCalledWith('coffee-machine');
   });
 
-  it('opens the form from the add button', async () => {
-    const onAddPurchase = jest.fn();
-    await renderList([headphones], { onAddPurchase });
-
-    await fireEvent.press(screen.getByText('Ajouter un achat'));
-
-    expect(onAddPurchase).toHaveBeenCalledTimes(1);
-  });
-
   it('invites the user to add a purchase when there is none', async () => {
     const onAddPurchase = jest.fn();
     await renderList([], { onAddPurchase });
 
     expect(screen.getByText('Aucun achat')).toBeTruthy();
-    expect(screen.queryByText(/achats? enregistrés?\./)).toBeNull();
+    expect(screen.queryByLabelText(/achats? enregistrés?/)).toBeNull();
 
     await fireEvent.press(screen.getByText('Ajouter un achat'));
 
@@ -138,7 +129,21 @@ describe('PurchaseList', () => {
   it('counts the saved purchases, not only the ones found by the search', async () => {
     await renderList([headphones], { totalCount: 3 });
 
-    expect(screen.getByText('3 achats enregistrés.')).toBeTruthy();
+    expect(screen.getByLabelText('3 achats enregistrés')).toBeTruthy();
+  });
+
+  it('says how many purchases are listed', async () => {
+    await renderList([headphones, coffeeMachine, vacuum]);
+
+    expect(screen.getByText('Tous les achats')).toBeTruthy();
+    expect(screen.getByText('3 éléments')).toBeTruthy();
+  });
+
+  it('says how many purchases the search found', async () => {
+    await renderList([headphones], { totalCount: 3 });
+
+    expect(screen.getByText('Résultats')).toBeTruthy();
+    expect(screen.getByText('1 élément')).toBeTruthy();
   });
 
   it('explains that the search found nothing, and keeps the controls visible', async () => {

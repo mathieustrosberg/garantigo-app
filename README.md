@@ -6,7 +6,7 @@ Projet réalisé en binôme dans le cadre du Master 2 Lead Developer Front End.
 
 ## Fonctionnalités
 
-L'application compte quatre écrans, reliés par deux onglets natifs (Mes achats, Mes garanties). Le détail et le formulaire s'ouvrent par-dessus.
+L'application compte quatre écrans, reliés par une barre d'onglets (Mes achats, Mes garanties) qui porte aussi le bouton d'ajout. Le détail et le formulaire s'ouvrent par-dessus.
 
 - **Mes achats** : liste des achats avec leur statut de garantie, recherche par nom, tri par date d'achat ou par date de fin de garantie, bouton « Ajouter un achat ». Un état vide distingue « aucun achat » et « aucun résultat ».
 - **Ajouter / modifier** : nom, date d'achat (sélecteur natif) et durée de garantie en mois sont obligatoires ; prix, catégorie et photo du ticket sont facultatifs. Un message d'erreur s'affiche sous chaque champ invalide. La photo est prise avec la caméra uniquement, avec un aperçu, « Reprendre » et « Retirer ».
