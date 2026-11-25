@@ -6,12 +6,14 @@ Projet réalisé en binôme dans le cadre du Master 2 Lead Developer Front End.
 
 ## Fonctionnalités
 
-L'application compte quatre écrans, reliés par une barre d'onglets (Mes achats, Mes garanties) qui porte aussi le bouton d'ajout. Le détail et le formulaire s'ouvrent par-dessus.
+Sans compte connecté, l'application affiche un accueil qui propose de créer un compte ou de se connecter. Une fois connecté, elle compte quatre écrans principaux, reliés par une barre d'onglets (Mes achats, Mes garanties) qui porte aussi le bouton d'ajout. Le détail, le formulaire et le compte s'ouvrent par-dessus.
 
-- **Mes achats** : liste des achats avec leur statut de garantie, recherche par nom, tri par date d'achat ou par date de fin de garantie, bouton « Ajouter un achat ». Un état vide distingue « aucun achat » et « aucun résultat ».
+- **Accueil, connexion, inscription** : adresse e-mail et mot de passe, saisi deux fois à l'inscription. Un message d'erreur s'affiche sous chaque champ invalide, et un échec est expliqué (identifiants incorrects, adresse déjà utilisée, pas de réseau).
+- **Mes achats** : vue d'ensemble (nombre d'achats, garanties en cours, répartition par statut), recherche par nom, tri par date d'achat ou par date de fin de garantie, liste des achats avec leur statut. Un état vide distingue « aucun achat » et « aucun résultat ».
 - **Ajouter / modifier** : nom, date d'achat (sélecteur natif) et durée de garantie en mois sont obligatoires ; prix, catégorie et photo du ticket sont facultatifs. Un message d'erreur s'affiche sous chaque champ invalide. La photo est prise avec la caméra uniquement, avec un aperçu, « Reprendre » et « Retirer ».
 - **Détail** : statut, date de fin de garantie, jours restants (toujours affichés), informations de l'achat, photo du ticket, modification, suppression confirmée.
-- **Mes garanties** : achats regroupés par statut (active, expire bientôt, expirée), avec un état vide.
+- **Mes garanties** : la prochaine échéance en tête, puis les achats regroupés par statut. Les garanties qui expirent bientôt sont toujours affichées ; les garanties actives et expirées se déplient d'un appui. Un état vide est prévu.
+- **Compte** : adresse du compte connecté, état de la synchronisation, « Synchroniser maintenant » et « Se déconnecter ».
 
 Règles de garantie :
 
@@ -20,7 +22,7 @@ Règles de garantie :
 
 Un retour haptique confirme l'enregistrement et la suppression d'un achat.
 
-L'application fonctionne sans compte et sans serveur : les données restent sur le téléphone. Au tout premier lancement, cinq achats de démonstration sont enregistrés ; ils ne reviennent jamais une fois supprimés.
+Les achats et les photos des tickets appartiennent à un compte. Ils sont enregistrés sur le téléphone, puis synchronisés en ligne : en se connectant sur un autre téléphone, on les retrouve. L'application reste utilisable sans réseau une fois connecté. Le fonctionnement est décrit dans la section [Synchronisation](#synchronisation).
 
 ## Stack
 
@@ -31,6 +33,7 @@ L'application fonctionne sans compte et sans serveur : les données restent sur 
 | Expo Router                            | Navigation par fichiers (`src/app`)       |
 | HeroUI Native, Uniwind                 | Composants d'interface et styles Tailwind |
 | AsyncStorage                           | Persistance locale des achats             |
+| Supabase (`@supabase/supabase-js`)     | Comptes et copie en ligne des achats      |
 | expo-image-picker                      | Photo du ticket prise avec la caméra      |
 | expo-file-system                       | Conservation des photos sur le téléphone  |
 | expo-haptics                           | Retour haptique                           |
@@ -47,6 +50,9 @@ Les choix techniques sont justifiés dans [`docs/adr`](docs/adr).
 - pnpm 10 (la version est fixée dans `package.json`, champ `packageManager`).
 - Un iPhone sous iOS 16.4 ou plus, avec l'application **Expo Go** installée depuis l'App Store.
 - Un compte Expo, connecté à la fois dans le terminal et dans Expo Go.
+- Une connexion à Internet pour créer un compte GarantiGo ou s'y connecter la première fois.
+
+Le fichier `.env` du dépôt contient l'adresse du projet Supabase et sa clé publique : il n'y a rien à configurer. Ces deux valeurs ne sont pas des secrets (voir [ADR-005](docs/adr/005-cloud-sync.md)).
 
 ## Installation
 
@@ -89,11 +95,15 @@ src/app/        routes et écrans (Expo Router)
 src/components/ composants partagés entre les écrans
 src/purchases/  modèle et logique métier des achats
 src/storage/    accès au stockage et liste partagée entre les écrans
+src/account/    compte utilisateur : connexion, inscription, déconnexion
+src/sync/       synchronisation des achats et des photos avec la copie en ligne
+src/theme/      couleurs de l'application
 src/native/     accès aux fonctions natives du téléphone (caméra, photos, retour haptique)
 src/__tests__/  tests des écrans (ils ne peuvent pas être placés dans src/app)
 src/data/       achats de démonstration
 docs/adr/       décisions d'architecture
 docs/           checklist de tests manuels sur iPhone
+supabase/       schéma de la base en ligne (table, règles d'accès, dossier des photos)
 .github/        intégration continue et modèle de Pull Request
 ```
 
@@ -102,6 +112,21 @@ docs/           checklist de tests manuels sur iPhone
 - **Achats** : enregistrés en JSON sous une seule clé AsyncStorage (`garantigo.purchases.v1`). Les écrans passent par l'interface `PurchaseStorage` et ne connaissent pas AsyncStorage ([ADR-003](docs/adr/003-local-persistence.md)).
 - **Photos des tickets** : copiées dans le dossier permanent `receipts/` de l'application. L'achat ne garde que le nom du fichier, et la suppression d'un achat supprime sa photo ([ADR-004](docs/adr/004-receipt-photos.md)).
 - **Dates** : les dates d'achat sont stockées sans heure (`AAAA-MM-JJ`) et les calculs se font en UTC, pour ne jamais changer de jour selon le fuseau horaire.
+- **Achats de démonstration** : cinq achats fournis par un fichier JSON. Ils ne sont enregistrés au premier lancement que si le service en ligne n'est pas configuré ; avec un compte, on démarre sans achat.
+
+## Synchronisation
+
+Le choix de Supabase et les règles ci-dessous sont justifiés dans l'[ADR-005](docs/adr/005-cloud-sync.md).
+
+- **Le téléphone d'abord** : chaque changement est enregistré sur le téléphone, puis envoyé en ligne. Sans réseau, il part à la synchronisation suivante.
+- **Quand** : à la connexion, au retour de l'application au premier plan et après chaque ajout, modification ou suppression. L'écran Compte permet aussi de la relancer.
+- **Conflits** : le téléphone note la date de chaque changement (clé `garantigo.changes.v1`). Si le même achat a changé sur deux téléphones, la modification la plus récente gagne.
+- **Suppressions** : un achat supprimé est marqué comme tel en ligne, pour que les autres téléphones le suppriment à leur tour.
+- **Photos** : une photo prise sur un téléphone est envoyée dans un dossier privé du compte, puis téléchargée par les autres téléphones.
+- **Un compte par téléphone** : si un autre compte se connecte, la copie du téléphone est vidée puis remplie avec ses achats. Rien ne passe d'un compte à l'autre.
+- **Confidentialité** : des règles d'accès dans la base garantissent qu'un compte ne lit et n'écrit que ses propres achats et ses propres photos.
+
+Pour utiliser son propre projet Supabase : exécuter [`supabase/schema.sql`](supabase/schema.sql) dans l'éditeur SQL du projet, désactiver la confirmation de l'adresse e-mail, puis remplacer les deux valeurs du fichier `.env`.
 
 ## Tests
 
@@ -112,24 +137,37 @@ Les tests automatiques (Jest, Testing Library) couvrent en priorité :
 - l'ajout, la modification, la suppression et la persistance « après redémarrage » ;
 - la recherche et le tri ;
 - la prise de photo (permission refusée, prise annulée, copie impossible) et la suppression de la photo ;
-- les erreurs de lecture et d'écriture du stockage.
+- les erreurs de lecture et d'écriture du stockage ;
+- la synchronisation, avec deux téléphones simulés sur le même compte : ajout, modification, suppression, conflit, panne de réseau, changement de compte, photos ;
+- la connexion, l'inscription et leurs messages d'erreur.
 
-Les tests utilisent une date de référence fixe : ils ne dépendent jamais du jour où ils sont lancés.
+Les tests utilisent une date de référence fixe : ils ne dépendent jamais du jour où ils sont lancés. Le service en ligne y est remplacé par une copie en mémoire.
+
+Un test vérifie la synchronisation contre le vrai projet Supabase. Il est ignoré par défaut et se lance à la main, avec un compte de test :
+
+```bash
+SYNC_TEST_EMAIL=... SYNC_TEST_PASSWORD=... pnpm exec jest sync.integration
+```
 
 ## Intégration continue
 
-À chaque Pull Request vers `main`, GitHub Actions installe les dépendances avec `pnpm install --frozen-lockfile`, puis exécute le typage, le lint, la vérification du formatage et les tests. Aucun secret ni build native n'est nécessaire.
+À chaque Pull Request vers `main`, GitHub Actions installe les dépendances avec `pnpm install --frozen-lockfile`, puis exécute le typage, le lint, la vérification du formatage et les tests. Aucun secret ni build native n'est nécessaire, et la CI ne contacte aucun serveur.
 
-La caméra, les permissions, le retour haptique et la persistance des photos se vérifient à la main sur iPhone, avec la [checklist de tests manuels](docs/manual-test-checklist.md).
+La caméra, les permissions, le retour haptique, la persistance des photos et la synchronisation entre deux téléphones se vérifient à la main sur iPhone, avec la [checklist de tests manuels](docs/manual-test-checklist.md).
 
 ## Limites connues
 
-- L'application se lance dans Expo Go : elle a besoin du serveur de développement pour démarrer. Une fois chargée, elle fonctionne sans connexion.
+- L'application se lance dans Expo Go : elle a besoin du serveur de développement pour démarrer. Une fois chargée et connectée à un compte, elle fonctionne sans connexion.
+- Le compte est obligatoire, et la première connexion demande du réseau.
+- Il n'y a pas de « mot de passe oublié », et la confirmation de l'adresse e-mail est désactivée.
+- En cas de conflit, la modification la plus récente gagne : elle peut écraser un changement fait hors ligne sur un autre téléphone. L'arbitrage repose sur l'horloge des téléphones.
+- Un autre téléphone ne voit un changement qu'à sa prochaine synchronisation, pas à la seconde.
+- Si un autre compte se connecte sur un téléphone, les changements du compte précédent qui n'avaient pas encore été envoyés sont perdus.
 - Dans Expo Go, la demande d'accès à la caméra est celle d'Expo Go, avec son propre texte. Le texte en français prévu dans `app.json` ne s'appliquerait que dans une application compilée (development build).
 - Après un refus de la caméra, « Ouvrir les Réglages » mène aux réglages d'Expo Go, pas à ceux de GarantiGo.
-- Une photo remplacée avec « Reprendre », retirée avec « Retirer », ou prise puis abandonnée avec « Annuler » reste dans le dossier `receipts/` sans être utilisée. Seule la photo d'un achat supprimé est effacée.
+- Une photo remplacée avec « Reprendre », retirée avec « Retirer », ou prise puis abandonnée avec « Annuler » reste dans le dossier `receipts/` du téléphone sans être utilisée. En ligne, une photo qui ne sert plus est supprimée.
 - Chaque modification réécrit toute la liste des achats : adapté à quelques dizaines d'achats, pas à des milliers.
-- Les données ne sont ni chiffrées ni sauvegardées ailleurs : désinstaller Expo Go ou l'application les supprime.
+- Les données ne sont pas chiffrées sur le téléphone, et la copie en ligne est hébergée par un tiers (Supabase).
 - La durée de garantie est saisie par l'utilisateur : l'application ne détermine pas la garantie légale.
 - Les composants qui s'appuient sur une feuille native (`BottomSheet`) ne sont pas disponibles dans Expo Go et ne sont pas utilisés.
 
@@ -138,9 +176,10 @@ La caméra, les permissions, le retour haptique et la persistance des photos se 
 Hors du périmètre du projet, mais envisageables :
 
 - un development build, pour une application installée de façon autonome, avec sa propre demande de permission ;
-- le nettoyage des photos inutilisées dans `receipts/` ;
+- le nettoyage des photos inutilisées dans le dossier `receipts/` du téléphone ;
 - des rappels avant la fin d'une garantie (notifications locales) ;
-- une sauvegarde ou une synchronisation des données ;
+- la réinitialisation du mot de passe et la confirmation de l'adresse e-mail ;
+- une synchronisation en temps réel, et un arbitrage des conflits qui ne dépende pas de l'horloge des téléphones ;
 - la lecture automatique des informations du ticket (OCR).
 
 ## Contribuer
