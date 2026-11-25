@@ -54,6 +54,8 @@ export function createAsyncPurchaseStorage(firstLaunchPurchases: Purchase[]): Pu
         deleteReceiptPhoto(removedPurchase.receiptFileName);
       }
     },
+
+    replaceAll: save,
   };
 }
 

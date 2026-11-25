@@ -30,5 +30,9 @@ export function createInMemoryPurchaseStorage(initialPurchases: Purchase[]): Pur
     async remove(id) {
       purchases = purchases.filter((purchase) => purchase.id !== id);
     },
+
+    async replaceAll(newPurchases) {
+      purchases = [...newPurchases];
+    },
   };
 }

@@ -26,8 +26,9 @@ La synchronisation suit le principe **« le téléphone d'abord »** :
 1. Chaque changement est d'abord enregistré sur le téléphone, exactement comme avant.
 2. Il est ensuite envoyé en ligne. Sans réseau, il attend et repart à la prochaine synchronisation.
 3. La synchronisation a lieu à la connexion, à l'ouverture de l'application, à son retour au premier plan et après chaque changement.
-4. Chaque achat porte la date de sa dernière modification. Si le même achat a changé sur deux téléphones, **la modification la plus récente gagne**.
-5. Un achat supprimé n'est pas effacé en ligne : il est marqué comme supprimé, pour que les autres téléphones le suppriment à leur tour.
+4. Le téléphone tient un **journal des changements** : la date de la dernière modification de chaque achat. Si le même achat a changé sur deux téléphones, **la modification la plus récente gagne**.
+5. Un achat supprimé n'est pas effacé en ligne : il est marqué comme supprimé, pour que les autres téléphones le suppriment à leur tour. Le journal du téléphone garde lui aussi la trace des suppressions.
+6. Un achat dont la date de modification est inconnue (un achat de démonstration, par exemple) est considéré comme le plus ancien : il ne peut jamais écraser un vrai changement.
 
 L'adresse du projet et sa clé publique sont lues dans le fichier `.env`. Cette clé est faite pour être publique : ce sont les règles d'accès de la base qui protègent les données. Si le fichier est absent, l'application ne propose pas de compte et fonctionne uniquement sur le téléphone.
 
@@ -45,7 +46,8 @@ Alternatives écartées :
 - **+** Le mode hors ligne est conservé, et l'application reste utilisable sans compte.
 - **+** Les écrans ne changent presque pas : ils passent toujours par l'interface `PurchaseStorage`.
 - **+** Les tests simulent le service en ligne : la CI ne contacte aucun serveur et n'a besoin d'aucun secret.
-- **−** Le modèle `Purchase` gagne deux informations : la date de dernière modification et le marqueur de suppression.
+- **+** Le modèle `Purchase` n'est pas modifié : les dates de modification sont rangées à part, sous la clé `garantigo.changes.v1`.
+- **−** Se déconnecter laisse les achats sur le téléphone. Se connecter ensuite à un autre compte les fusionne avec ceux de ce compte : acceptable pour un téléphone personnel.
 - **−** « La plus récente gagne » peut écraser une modification faite hors ligne sur un autre téléphone. C'est acceptable pour une liste personnelle.
 - **−** La date de modification vient de l'horloge du téléphone : une horloge déréglée peut fausser l'arbitrage.
 - **−** Un autre téléphone ne voit un changement qu'à sa prochaine synchronisation, pas à la seconde.

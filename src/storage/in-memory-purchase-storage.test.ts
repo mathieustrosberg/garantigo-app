@@ -74,4 +74,13 @@ describe('createInMemoryPurchaseStorage', () => {
 
     expect(await storage.getAll()).toEqual([headphones]);
   });
+
+  it('replaces the whole list', async () => {
+    const storage = createInMemoryPurchaseStorage([headphones]);
+    const renamed = { ...headphones, name: 'Renommé' };
+
+    await storage.replaceAll([renamed]);
+
+    expect(await storage.getAll()).toEqual([renamed]);
+  });
 });

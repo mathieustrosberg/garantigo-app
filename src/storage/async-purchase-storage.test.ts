@@ -152,6 +152,33 @@ describe('storage errors', () => {
   });
 });
 
+describe('replacing the whole list', () => {
+  it('survives a restart of the application', async () => {
+    const renamed = { ...demoHeadphones, name: 'Renommé' };
+
+    await restartApplication().replaceAll([renamed]);
+
+    expect(await restartApplication().getAll()).toEqual([renamed]);
+  });
+
+  it('deletes no photo: the purchases may only have changed', async () => {
+    const kettle = await restartApplication().add({
+      ...kettleInput,
+      receiptFileName: 'receipt-1.jpg',
+    });
+
+    await restartApplication().replaceAll([{ ...kettle, name: 'Bouilloire renommée' }]);
+
+    expect(deleteReceiptPhoto).not.toHaveBeenCalled();
+  });
+
+  it('rejects with a StorageError when the phone storage fails', async () => {
+    jest.spyOn(AsyncStorage, 'setItem').mockRejectedValueOnce(new Error('disk full'));
+
+    await expect(restartApplication().replaceAll([])).rejects.toBeInstanceOf(StorageError);
+  });
+});
+
 describe('receipt photo of a removed purchase', () => {
   it('is deleted with the purchase', async () => {
     const kettle = await restartApplication().add({

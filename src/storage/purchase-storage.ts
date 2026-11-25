@@ -10,6 +10,8 @@ export interface PurchaseStorage {
   add(input: PurchaseInput): Promise<Purchase>;
   update(purchase: Purchase): Promise<Purchase>;
   remove(id: string): Promise<void>;
+  /** Replaces the whole list, for example after a synchronisation. Deletes no photo. */
+  replaceAll(purchases: Purchase[]): Promise<void>;
 }
 
 export type StorageOperation = 'read' | 'write';

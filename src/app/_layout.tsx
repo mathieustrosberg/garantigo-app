@@ -2,6 +2,7 @@ import '@/global.css';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { HeroUINativeProvider } from 'heroui-native';
+import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -9,6 +10,12 @@ import { PurchasesGate } from '@/components/purchases-gate';
 import { demoPurchases } from '@/data/demo-purchases';
 import { createAsyncPurchaseStorage } from '@/storage/async-purchase-storage';
 import { PurchasesProvider } from '@/storage/purchases-context';
+import { createAsyncChangeLogStore } from '@/sync/change-log-store';
+import { createSupabaseRemotePurchases } from '@/sync/remote-purchases';
+import { cloudClient } from '@/sync/supabase-client';
+import { SyncProvider } from '@/sync/sync-context';
+import { createTrackedPurchaseStorage } from '@/sync/tracked-purchase-storage';
+import { useCloudUserId } from '@/sync/use-cloud-user-id';
 import {
   BRAND_COLOR,
   BRAND_COLOR_ON_DARK,
@@ -17,7 +24,11 @@ import {
 } from '@/theme/brand-colors';
 
 // The demonstration purchases are only saved on the very first launch.
-const purchaseStorage = createAsyncPurchaseStorage(demoPurchases);
+// The storage also remembers when each purchase changed, so it can be synchronised.
+const purchaseStorage = createTrackedPurchaseStorage(
+  createAsyncPurchaseStorage(demoPurchases),
+  createAsyncChangeLogStore(),
+);
 
 // Navigation themes with the brand colours: the back button, the header buttons and the
 // background shown behind the screens.
@@ -37,29 +48,40 @@ const darkNavigationTheme = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const userId = useCloudUserId(cloudClient);
+  // The online copy of the signed-in account. Without an account, nothing is synchronised.
+  const remotePurchases = useMemo(
+    () =>
+      cloudClient !== null && userId !== null
+        ? createSupabaseRemotePurchases(cloudClient, userId)
+        : null,
+    [userId],
+  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? darkNavigationTheme : lightNavigationTheme}>
         <HeroUINativeProvider>
           <PurchasesProvider storage={purchaseStorage}>
-            <PurchasesGate>
-              <Stack screenOptions={{ headerBackTitle: 'Retour' }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="purchases/new"
-                  options={{ title: 'Nouvel achat', presentation: 'modal' }}
-                />
-                <Stack.Screen
-                  name="purchases/[id]/index"
-                  options={{ title: "Détail de l'achat" }}
-                />
-                <Stack.Screen
-                  name="purchases/[id]/edit"
-                  options={{ title: "Modifier l'achat", presentation: 'modal' }}
-                />
-              </Stack>
-            </PurchasesGate>
+            <SyncProvider storage={purchaseStorage} remote={remotePurchases}>
+              <PurchasesGate>
+                <Stack screenOptions={{ headerBackTitle: 'Retour' }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="purchases/new"
+                    options={{ title: 'Nouvel achat', presentation: 'modal' }}
+                  />
+                  <Stack.Screen
+                    name="purchases/[id]/index"
+                    options={{ title: "Détail de l'achat" }}
+                  />
+                  <Stack.Screen
+                    name="purchases/[id]/edit"
+                    options={{ title: "Modifier l'achat", presentation: 'modal' }}
+                  />
+                </Stack>
+              </PurchasesGate>
+            </SyncProvider>
           </PurchasesProvider>
         </HeroUINativeProvider>
       </ThemeProvider>
