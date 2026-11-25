@@ -29,6 +29,7 @@ La synchronisation suit le principe **« le téléphone d'abord »** :
 4. Le téléphone tient un **journal des changements** : la date de la dernière modification de chaque achat. Si le même achat a changé sur deux téléphones, **la modification la plus récente gagne**.
 5. Un achat supprimé n'est pas effacé en ligne : il est marqué comme supprimé, pour que les autres téléphones le suppriment à leur tour. Le journal du téléphone garde lui aussi la trace des suppressions.
 6. Un achat dont la date de modification est inconnue (un achat de démonstration, par exemple) est considéré comme le plus ancien : il ne peut jamais écraser un vrai changement.
+7. Les photos des tickets suivent les achats : une photo prise sur un téléphone est envoyée en ligne, puis téléchargée par les autres. Quand plus aucun achat ne l'utilise, elle est supprimée en ligne.
 
 Le compte est **obligatoire** : sans compte connecté, l'application n'affiche que l'accueil, avec la connexion et l'inscription. La session est conservée sur le téléphone : une fois connecté, on rouvre l'application sans réseau et sans rien ressaisir.
 
@@ -55,6 +56,7 @@ Alternatives écartées :
 - **−** Si un autre compte se connecte sur le téléphone, les changements du compte précédent qui n'avaient pas encore été envoyés sont perdus.
 - **−** Avec le service en ligne, il n'y a plus d'achats de démonstration : un nouveau compte commence vide. Ils ne servent plus que sans service en ligne, et dans les tests.
 - **−** Les achats déjà présents sur un téléphone avant sa toute première connexion sont rattachés au premier compte qui s'y connecte, pour ne rien perdre.
+- **−** Une photo n'apparaît sur un autre téléphone qu'après sa synchronisation : d'ici là, l'achat s'affiche avec le message « photo introuvable ».
 - **−** Il n'y a pas de « mot de passe oublié » : il demanderait l'envoi d'e-mails et un lien qui rouvre l'application.
 - **−** « La plus récente gagne » peut écraser une modification faite hors ligne sur un autre téléphone. C'est acceptable pour une liste personnelle.
 - **−** La date de modification vient de l'horloge du téléphone : une horloge déréglée peut fausser l'arbitrage.

@@ -10,13 +10,21 @@ import { AccountProvider, useAccount } from '@/account/account-context';
 import { AccountGate } from '@/components/account-gate';
 import { PurchasesGate } from '@/components/purchases-gate';
 import { demoPurchases } from '@/data/demo-purchases';
+import {
+  deleteReceiptPhoto,
+  downloadReceiptPhoto,
+  getReceiptPhotoUri,
+  readReceiptPhoto,
+} from '@/native/receipt-photos';
 import { createAsyncPurchaseStorage } from '@/storage/async-purchase-storage';
 import { PurchasesProvider } from '@/storage/purchases-context';
 import { createAsyncChangeLogStore } from '@/sync/change-log-store';
 import { createAsyncOwnerStore } from '@/sync/owner-store';
+import { createSupabaseRemotePhotos } from '@/sync/remote-photos';
 import { createSupabaseRemotePurchases } from '@/sync/remote-purchases';
 import { cloudClient } from '@/sync/supabase-client';
 import { SyncProvider } from '@/sync/sync-context';
+import type { LocalPhotos } from '@/sync/sync-photos';
 import { createTrackedPurchaseStorage } from '@/sync/tracked-purchase-storage';
 import {
   BRAND_COLOR,
@@ -34,7 +42,15 @@ const purchaseStorage = createTrackedPurchaseStorage(
   createAsyncPurchaseStorage(firstLaunchPurchases),
   createAsyncChangeLogStore(),
   createAsyncOwnerStore(),
+  { deletePhoto: deleteReceiptPhoto },
 );
+
+// The receipt photos of the phone, as the synchronisation needs them.
+const localPhotos: LocalPhotos = {
+  has: (fileName) => getReceiptPhotoUri(fileName) !== undefined,
+  read: readReceiptPhoto,
+  download: downloadReceiptPhoto,
+};
 
 // Navigation themes with the brand colours: the back button, the header buttons and the
 // background shown behind the screens.
@@ -94,20 +110,26 @@ export default function RootLayout() {
   );
 }
 
-/** Synchronises the purchases with the online copy of the signed-in account. */
+/** Synchronises the purchases and their photos with the online copy of the signed-in account. */
 function SyncedPurchases({ children }: { children: ReactNode }) {
   const accountId = useAccount().account?.id ?? null;
   // Without a signed-in account, there is no online copy: nothing is synchronised.
-  const remotePurchases = useMemo(
-    () =>
-      cloudClient !== null && accountId !== null
-        ? createSupabaseRemotePurchases(cloudClient, accountId)
-        : null,
-    [accountId],
-  );
+  const remote = useMemo(() => {
+    if (cloudClient === null || accountId === null) return null;
+
+    return {
+      purchases: createSupabaseRemotePurchases(cloudClient, accountId),
+      photos: createSupabaseRemotePhotos(cloudClient, accountId),
+    };
+  }, [accountId]);
 
   return (
-    <SyncProvider storage={purchaseStorage} remote={remotePurchases}>
+    <SyncProvider
+      storage={purchaseStorage}
+      remote={remote?.purchases ?? null}
+      localPhotos={localPhotos}
+      remotePhotos={remote?.photos ?? null}
+    >
       {children}
     </SyncProvider>
   );

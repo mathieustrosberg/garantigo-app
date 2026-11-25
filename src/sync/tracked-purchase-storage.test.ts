@@ -121,4 +121,70 @@ describe('createTrackedPurchaseStorage', () => {
 
     expect(await storage.getAll()).toEqual([kettle]);
   });
+
+  describe('receipt photos left without purchase by a merge', () => {
+    const toaster = {
+      id: 'toaster',
+      name: 'Grille-pain',
+      purchaseDate: '2026-03-01',
+      warrantyMonths: 24,
+      receiptFileName: 'receipt-1.jpg',
+    };
+
+    function createStorageWithToaster() {
+      const deletePhoto = jest.fn();
+      const storage = createTrackedPurchaseStorage(
+        createInMemoryPurchaseStorage([toaster]),
+        createInMemoryChangeLogStore(),
+        createInMemoryOwnerStore(),
+        { getNow: () => NOW, deletePhoto },
+      );
+      return { storage, deletePhoto };
+    }
+
+    it('are deleted when their purchase was deleted on another phone', async () => {
+      const { storage, deletePhoto } = createStorageWithToaster();
+
+      await storage.mergeWithRemote(
+        [{ purchase: toaster, changedAt: NOW, isDeleted: true }],
+        'account-1',
+      );
+
+      expect(deletePhoto).toHaveBeenCalledWith('receipt-1.jpg');
+    });
+
+    it('are deleted when their photo was replaced on another phone', async () => {
+      const { storage, deletePhoto } = createStorageWithToaster();
+
+      await storage.mergeWithRemote(
+        [
+          {
+            purchase: { ...toaster, receiptFileName: 'receipt-2.jpg' },
+            changedAt: NOW,
+            isDeleted: false,
+          },
+        ],
+        'account-1',
+      );
+
+      expect(deletePhoto).toHaveBeenCalledWith('receipt-1.jpg');
+    });
+
+    it('are deleted when another account takes the phone', async () => {
+      const { storage, deletePhoto } = createStorageWithToaster();
+      await storage.mergeWithRemote([], 'account-1');
+
+      await storage.mergeWithRemote([], 'account-2');
+
+      expect(deletePhoto).toHaveBeenCalledWith('receipt-1.jpg');
+    });
+
+    it('are kept as long as their purchase stays', async () => {
+      const { storage, deletePhoto } = createStorageWithToaster();
+
+      await storage.mergeWithRemote([], 'account-1');
+
+      expect(deletePhoto).not.toHaveBeenCalled();
+    });
+  });
 });

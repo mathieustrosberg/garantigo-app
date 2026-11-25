@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import { usePurchases } from '@/storage/purchases-context';
 
 import type { RemotePurchases } from './remote-purchases';
+import { syncPhotos, type LocalPhotos, type RemotePhotos } from './sync-photos';
 import { syncPurchases } from './sync-purchases';
 import type { TrackedPurchaseStorage } from './tracked-purchase-storage';
 
@@ -27,6 +28,9 @@ type SyncProviderProps = {
   storage: TrackedPurchaseStorage;
   /** The online copy of the signed-in account, or null when nobody is signed in. */
   remote: RemotePurchases | null;
+  /** The receipt photos on the phone, and those of the signed-in account. */
+  localPhotos: LocalPhotos;
+  remotePhotos: RemotePhotos | null;
   children: ReactNode;
 };
 
@@ -34,7 +38,13 @@ type SyncProviderProps = {
  * Keeps the phone and the online copy in step, without the screens asking for it:
  * at sign-in, when the application comes back to the front, and after each change.
  */
-export function SyncProvider({ storage, remote, children }: SyncProviderProps) {
+export function SyncProvider({
+  storage,
+  remote,
+  localPhotos,
+  remotePhotos,
+  children,
+}: SyncProviderProps) {
   const { refresh, status: purchasesStatus } = usePurchases();
   const arePurchasesReady = purchasesStatus === 'ready';
   const [lastOutcome, setLastOutcome] = useState<Exclude<SyncStatus, 'signedOut'>>('syncing');
@@ -48,13 +58,13 @@ export function SyncProvider({ storage, remote, children }: SyncProviderProps) {
 
   useEffect(() => {
     // The first synchronisation waits for the purchases of the phone to be loaded.
-    if (remote === null || !arePurchasesReady) return;
+    if (remote === null || remotePhotos === null || !arePurchasesReady) return;
 
     let isStopped = false;
     let isRunning = false;
     let isAskedAgain = false;
 
-    async function run(account: RemotePurchases) {
+    async function run(account: RemotePurchases, accountPhotos: RemotePhotos) {
       // One synchronisation at a time: a request made meanwhile runs right after.
       if (isRunning) {
         isAskedAgain = true;
@@ -67,7 +77,9 @@ export function SyncProvider({ storage, remote, children }: SyncProviderProps) {
         do {
           isAskedAgain = false;
           const hasLocalChanges = await syncPurchases(storage, account);
-          if (hasLocalChanges && !isStopped) await refreshRef.current();
+          // The purchases first: they say which photos are wanted.
+          const hasNewPhotos = await syncPhotos(await storage.getAll(), localPhotos, accountPhotos);
+          if ((hasLocalChanges || hasNewPhotos) && !isStopped) await refreshRef.current();
         } while (isAskedAgain && !isStopped);
         if (!isStopped) setLastOutcome('synced');
       } catch {
@@ -79,7 +91,7 @@ export function SyncProvider({ storage, remote, children }: SyncProviderProps) {
     }
 
     const syncNow = () => {
-      run(remote);
+      run(remote, remotePhotos);
     };
     syncNowRef.current = syncNow;
     syncNow();
@@ -95,7 +107,7 @@ export function SyncProvider({ storage, remote, children }: SyncProviderProps) {
       stopListening();
       appStateSubscription.remove();
     };
-  }, [storage, remote, arePurchasesReady]);
+  }, [storage, remote, localPhotos, remotePhotos, arePurchasesReady]);
 
   const status: SyncStatus = remote === null ? 'signedOut' : lastOutcome;
 

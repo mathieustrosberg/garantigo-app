@@ -71,3 +71,16 @@ export function deleteReceiptPhoto(fileName: string): void {
     // The file stays in the receipts folder, unused: nothing to show to the user.
   }
 }
+
+/** Content of a stored receipt photo, to send it online. Rejects when the file is missing. */
+export function readReceiptPhoto(fileName: string): Promise<ArrayBuffer> {
+  return new File(getReceiptsDirectory(), fileName).arrayBuffer();
+}
+
+/** Downloads a photo into the receipts folder, under the given file name. */
+export async function downloadReceiptPhoto(url: string, fileName: string): Promise<void> {
+  const directory = getReceiptsDirectory();
+  directory.create({ idempotent: true });
+
+  await File.downloadFileAsync(url, new File(directory, fileName), { idempotent: true });
+}

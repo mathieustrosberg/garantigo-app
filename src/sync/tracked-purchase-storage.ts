@@ -1,3 +1,4 @@
+import type { Purchase } from '@/purchases/purchase';
 import type { PurchaseStorage } from '@/storage/purchase-storage';
 
 import type { ChangeLogStore } from './change-log-store';
@@ -21,6 +22,11 @@ export interface TrackedPurchaseStorage extends PurchaseStorage {
 type Options = {
   /** Current date and time. A parameter so that tests never depend on the real clock. */
   getNow?: () => string;
+  /**
+   * Deletes a receipt photo from the phone. Called for the photos that a merge leaves
+   * without purchase: their purchase was deleted on another phone, or belongs to another account.
+   */
+  deletePhoto?: (fileName: string) => void;
 };
 
 /**
@@ -31,7 +37,7 @@ export function createTrackedPurchaseStorage(
   storage: PurchaseStorage,
   changeLog: ChangeLogStore,
   ownerStore: OwnerStore,
-  { getNow = () => new Date().toISOString() }: Options = {},
+  { getNow = () => new Date().toISOString(), deletePhoto = () => {} }: Options = {},
 ): TrackedPurchaseStorage {
   const runAlone = createQueue();
   const listeners = new Set<() => void>();
@@ -80,15 +86,21 @@ export function createTrackedPurchaseStorage(
         // No owner yet: the purchases made before the first sign-in go to this account.
         const belongsToAnotherAccount = owner !== null && owner !== accountId;
 
+        const purchasesBefore = await storage.getAll();
         const local = belongsToAnotherAccount
           ? { purchases: [], changes: {} }
-          : { purchases: await storage.getAll(), changes: await changeLog.read() };
+          : { purchases: purchasesBefore, changes: await changeLog.read() };
         const result = mergePurchases(local, remotePurchases);
         if (belongsToAnotherAccount) result.hasLocalChanges = true;
 
         if (result.hasLocalChanges) await storage.replaceAll(result.purchases);
         await changeLog.write(result.changes);
         if (owner !== accountId) await ownerStore.write(accountId);
+
+        // Only once everything is saved: a failed save keeps the photos.
+        for (const fileName of getPhotosLeftWithoutPurchase(purchasesBefore, result.purchases)) {
+          deletePhoto(fileName);
+        }
         return result;
       }),
 
@@ -99,6 +111,16 @@ export function createTrackedPurchaseStorage(
       };
     },
   };
+}
+
+/** File names of the photos that a purchase named before, and that no purchase names now. */
+function getPhotosLeftWithoutPurchase(before: Purchase[], after: Purchase[]): string[] {
+  const namesAfter = new Set(after.map((purchase) => purchase.receiptFileName));
+
+  return before
+    .map((purchase) => purchase.receiptFileName)
+    .filter((fileName) => fileName !== undefined)
+    .filter((fileName) => !namesAfter.has(fileName));
 }
 
 /**

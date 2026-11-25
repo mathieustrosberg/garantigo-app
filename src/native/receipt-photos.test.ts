@@ -1,6 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
 
-import { deleteReceiptPhoto, getReceiptPhotoUri, takeReceiptPhoto } from './receipt-photos';
+import {
+  deleteReceiptPhoto,
+  downloadReceiptPhoto,
+  getReceiptPhotoUri,
+  readReceiptPhoto,
+  takeReceiptPhoto,
+} from './receipt-photos';
 
 // The camera and the phone's files do not exist in Jest: small fakes stand in for them.
 const mockFiles = new Set<string>();
@@ -34,6 +40,15 @@ jest.mock('expo-file-system', () => {
       await Promise.resolve();
       if (!mockFiles.has(this.uri)) throw new Error('Missing source file');
       mockFiles.add(destination.uri);
+    }
+    async arrayBuffer() {
+      if (!mockFiles.has(this.uri)) throw new Error('Missing file');
+      return new TextEncoder().encode(this.uri).buffer;
+    }
+    static async downloadFileAsync(url: string, destination: File) {
+      if (url.includes('broken')) throw new Error('Download failed');
+      mockFiles.add(destination.uri);
+      return destination;
     }
   }
 
@@ -137,5 +152,34 @@ describe('deleteReceiptPhoto', () => {
 
   it('does nothing when the photo is already gone', () => {
     expect(() => deleteReceiptPhoto('receipt-unknown.jpg')).not.toThrow();
+  });
+});
+
+describe('readReceiptPhoto', () => {
+  it('gives the content of a stored photo', async () => {
+    mockFiles.add('file:///documents/receipts/receipt-1.jpg');
+
+    const content = await readReceiptPhoto('receipt-1.jpg');
+
+    expect(new TextDecoder().decode(content)).toBe('file:///documents/receipts/receipt-1.jpg');
+  });
+
+  it('rejects when the photo is not on the phone', async () => {
+    await expect(readReceiptPhoto('missing.jpg')).rejects.toThrow();
+  });
+});
+
+describe('downloadReceiptPhoto', () => {
+  it('keeps the downloaded photo in the receipts folder, under the given name', async () => {
+    await downloadReceiptPhoto('https://example.com/signed', 'receipt-1.jpg');
+
+    expect(getReceiptPhotoUri('receipt-1.jpg')).toBe('file:///documents/receipts/receipt-1.jpg');
+  });
+
+  it('rejects when the download fails, and keeps nothing', async () => {
+    await expect(
+      downloadReceiptPhoto('https://example.com/broken', 'receipt-1.jpg'),
+    ).rejects.toThrow();
+    expect(getReceiptPhotoUri('receipt-1.jpg')).toBeUndefined();
   });
 });

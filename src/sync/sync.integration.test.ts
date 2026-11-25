@@ -13,6 +13,7 @@ import { createInMemoryPurchaseStorage } from '@/storage/in-memory-purchase-stor
 
 import { createInMemoryChangeLogStore } from './change-log-store';
 import { createInMemoryOwnerStore } from './owner-store';
+import { createSupabaseRemotePhotos } from './remote-photos';
 import { createSupabaseRemotePurchases, type RemotePurchases } from './remote-purchases';
 import { createCloudClient } from './supabase-client';
 import { syncPurchases } from './sync-purchases';
@@ -62,6 +63,7 @@ async function signIn(cloud: SupabaseClient): Promise<string> {
 describeWithAccount('synchronisation with the real online service', () => {
   const cloud = client as SupabaseClient;
   let account: RemotePurchases;
+  let accountId: string;
 
   const kettleInput: PurchaseInput = {
     name: `Bouilloire ${RUN}`,
@@ -77,11 +79,13 @@ describeWithAccount('synchronisation with the real online service', () => {
   }
 
   beforeAll(async () => {
-    account = createSupabaseRemotePurchases(cloud, await signIn(cloud));
+    accountId = await signIn(cloud);
+    account = createSupabaseRemotePurchases(cloud, accountId);
   });
 
   afterAll(async () => {
     await cloud.from('purchases').delete().like('name', `%${RUN}%`);
+    await cloud.storage.from('receipts').remove([`${accountId}/${RUN}.jpg`]);
     await cloud.auth.signOut();
     await cloud.auth.stopAutoRefresh();
   });
@@ -117,5 +121,20 @@ describeWithAccount('synchronisation with the real online service', () => {
 
     const [deletedRow] = await getOwnPurchases();
     expect(deletedRow?.isDeleted).toBe(true);
+  }, 30_000);
+
+  it('keeps a receipt photo online, gives it back, then removes it', async () => {
+    const photos = createSupabaseRemotePhotos(cloud, accountId);
+    const fileName = `${RUN}.jpg`;
+    const content = new TextEncoder().encode('fake photo').buffer as ArrayBuffer;
+
+    await photos.upload(fileName, content);
+    expect(await photos.list()).toContain(fileName);
+
+    const response = await realFetch(await photos.getDownloadUrl(fileName));
+    expect(new TextDecoder().decode(await response.arrayBuffer())).toBe('fake photo');
+
+    await photos.remove([fileName]);
+    expect(await photos.list()).not.toContain(fileName);
   }, 30_000);
 });
