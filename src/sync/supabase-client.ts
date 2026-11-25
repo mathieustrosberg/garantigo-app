@@ -1,6 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+type CloudClientOptions = {
+  /**
+   * The function that sends the requests. Left out in the application.
+   * The test against the real service gives its own: the one of the test environment sends nothing.
+   */
+  fetch?: typeof fetch;
+};
+
 /**
  * Creates the connection to the online service that keeps the accounts and a copy of the purchases.
  * Returns null when the address or the key is missing: the application then stays on the phone only.
@@ -8,10 +16,12 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 export function createCloudClient(
   url: string | undefined,
   publishableKey: string | undefined,
+  options: CloudClientOptions = {},
 ): SupabaseClient | null {
   if (!url || !publishableKey) return null;
 
   return createClient(url, publishableKey, {
+    global: { fetch: options.fetch },
     auth: {
       // The session is kept on the phone, so the user stays signed in after a restart.
       storage: AsyncStorage,

@@ -1,0 +1,104 @@
+import type { PurchaseStorage } from '@/storage/purchase-storage';
+
+import type { ChangeLogStore } from './change-log-store';
+import { mergePurchases, type MergeResult, type RemotePurchase } from './merge-purchases';
+
+/** A purchase storage that remembers when each purchase changed, so it can be synchronised. */
+export interface TrackedPurchaseStorage extends PurchaseStorage {
+  /**
+   * Merges the online purchases into the phone copy and saves the result on the phone.
+   * Returns what must then be sent online.
+   */
+  mergeWithRemote(remotePurchases: RemotePurchase[]): Promise<MergeResult>;
+  /** Calls `listener` after each purchase added, changed or removed on this phone. */
+  onLocalChange(listener: () => void): () => void;
+}
+
+type Options = {
+  /** Current date and time. A parameter so that tests never depend on the real clock. */
+  getNow?: () => string;
+};
+
+/**
+ * Wraps a purchase storage: every change is done as before, then its date is written
+ * in the change log. The screens see no difference.
+ */
+export function createTrackedPurchaseStorage(
+  storage: PurchaseStorage,
+  changeLog: ChangeLogStore,
+  { getNow = () => new Date().toISOString() }: Options = {},
+): TrackedPurchaseStorage {
+  const runAlone = createQueue();
+  const listeners = new Set<() => void>();
+
+  async function recordChange(id: string, isDeleted: boolean) {
+    const changes = await changeLog.read();
+    await changeLog.write({ ...changes, [id]: { changedAt: getNow(), isDeleted } });
+  }
+
+  /** Runs a change of the phone copy alone, then tells the listeners. */
+  async function change<Result>(task: () => Promise<Result>): Promise<Result> {
+    const result = await runAlone(task);
+    listeners.forEach((listener) => listener());
+    return result;
+  }
+
+  return {
+    getAll: () => storage.getAll(),
+
+    add: (input) =>
+      change(async () => {
+        const purchase = await storage.add(input);
+        await recordChange(purchase.id, false);
+        return purchase;
+      }),
+
+    update: (purchase) =>
+      change(async () => {
+        const updatedPurchase = await storage.update(purchase);
+        await recordChange(purchase.id, false);
+        return updatedPurchase;
+      }),
+
+    remove: (id) =>
+      change(async () => {
+        await storage.remove(id);
+        await recordChange(id, true);
+      }),
+
+    replaceAll: (purchases) => runAlone(() => storage.replaceAll(purchases)),
+
+    // Not a change made by the user: the listeners are not told, or it would never stop.
+    mergeWithRemote: (remotePurchases) =>
+      runAlone(async () => {
+        const local = { purchases: await storage.getAll(), changes: await changeLog.read() };
+        const result = mergePurchases(local, remotePurchases);
+
+        if (result.hasLocalChanges) await storage.replaceAll(result.purchases);
+        await changeLog.write(result.changes);
+        return result;
+      }),
+
+    onLocalChange(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
+/**
+ * Runs the tasks one after the other, in the order they are given.
+ * Without it, a purchase added while a merge is being saved could be lost.
+ */
+function createQueue() {
+  let lastTask: Promise<unknown> = Promise.resolve();
+
+  return function runAlone<Result>(task: () => Promise<Result>): Promise<Result> {
+    const result = lastTask.then(task, task);
+    // A failed task must not block the next ones.
+    lastTask = result.catch(() => undefined);
+    return result;
+  };
+}
