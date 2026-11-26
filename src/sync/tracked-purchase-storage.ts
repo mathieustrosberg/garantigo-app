@@ -15,6 +15,12 @@ export interface TrackedPurchaseStorage extends PurchaseStorage {
    * emptied first: nobody receives the purchases of someone else.
    */
   mergeWithRemote(remotePurchases: RemotePurchase[], accountId: string): Promise<MergeResult>;
+  /**
+   * Empties the phone copy when it belongs to another account than `accountId`, and gives it
+   * to this account. Returns true when it did. It needs no network: it is done right after
+   * a sign-in, before any screen shows the purchases.
+   */
+  emptyCopyOfAnotherAccount(accountId: string): Promise<boolean>;
   /** Calls `listener` after each purchase added, changed or removed on this phone. */
   onLocalChange(listener: () => void): () => void;
 }
@@ -45,6 +51,23 @@ export function createTrackedPurchaseStorage(
   async function recordChange(id: string, isDeleted: boolean) {
     const changes = await changeLog.read();
     await changeLog.write({ ...changes, [id]: { changedAt: getNow(), isDeleted } });
+  }
+
+  async function emptyCopyOfAnotherAccount(accountId: string): Promise<boolean> {
+    const owner = await ownerStore.read();
+    // No owner yet: the purchases made before the first sign-in go to this account.
+    if (owner === null || owner === accountId) return false;
+
+    const purchases = await storage.getAll();
+    await storage.replaceAll([]);
+    await changeLog.write({});
+    await ownerStore.write(accountId);
+
+    // Only once everything is saved: a failed save keeps the photos.
+    for (const fileName of getPhotosLeftWithoutPurchase(purchases, [])) {
+      deletePhoto(fileName);
+    }
+    return true;
   }
 
   /** Runs a change of the phone copy alone, then tells the listeners. */
@@ -82,20 +105,18 @@ export function createTrackedPurchaseStorage(
     // Not a change made by the user: the listeners are not told, or it would never stop.
     mergeWithRemote: (remotePurchases, accountId) =>
       runAlone(async () => {
-        const owner = await ownerStore.read();
-        // No owner yet: the purchases made before the first sign-in go to this account.
-        const belongsToAnotherAccount = owner !== null && owner !== accountId;
+        // Already done at sign-in. Done here too, so a merge alone can never mix two accounts.
+        const wasEmptied = await emptyCopyOfAnotherAccount(accountId);
 
         const purchasesBefore = await storage.getAll();
-        const local = belongsToAnotherAccount
-          ? { purchases: [], changes: {} }
-          : { purchases: purchasesBefore, changes: await changeLog.read() };
+        const local = { purchases: purchasesBefore, changes: await changeLog.read() };
         const result = mergePurchases(local, remotePurchases);
-        if (belongsToAnotherAccount) result.hasLocalChanges = true;
+        if (wasEmptied) result.hasLocalChanges = true;
 
         if (result.hasLocalChanges) await storage.replaceAll(result.purchases);
         await changeLog.write(result.changes);
-        if (owner !== accountId) await ownerStore.write(accountId);
+        // First sign-in on this phone: its purchases now belong to this account.
+        if ((await ownerStore.read()) === null) await ownerStore.write(accountId);
 
         // Only once everything is saved: a failed save keeps the photos.
         for (const fileName of getPhotosLeftWithoutPurchase(purchasesBefore, result.purchases)) {
@@ -103,6 +124,9 @@ export function createTrackedPurchaseStorage(
         }
         return result;
       }),
+
+    // Not a change made by the user either: the listeners are not told.
+    emptyCopyOfAnotherAccount: (accountId) => runAlone(() => emptyCopyOfAnotherAccount(accountId)),
 
     onLocalChange(listener) {
       listeners.add(listener);

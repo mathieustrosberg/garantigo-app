@@ -16,8 +16,24 @@ import type { TrackedPurchaseStorage } from './tracked-purchase-storage';
  */
 export type SyncStatus = 'signedOut' | 'syncing' | 'synced' | 'failed';
 
+/**
+ * The phone copy belongs to one account. After a sign-in, it may still be the copy of the
+ * account signed in before: the screens must not show it.
+ * - 'checking': the owner of the phone copy is being read, nothing must be shown yet.
+ * - 'ready': the phone copy belongs to the signed-in account, or nobody is signed in.
+ * - 'failed': the check could not be done, because the phone storage failed.
+ */
+export type PhoneCopyStatus = 'checking' | 'ready' | 'failed';
+
+/** The last check of the phone copy, and the account it was done for. */
+type PhoneCopyCheck = {
+  accountId: string;
+  hasFailed: boolean;
+};
+
 type SyncContextValue = {
   status: SyncStatus;
+  phoneCopyStatus: PhoneCopyStatus;
   /** Synchronises now. Does nothing when nobody is signed in. */
   syncNow: () => void;
 };
@@ -48,6 +64,7 @@ export function SyncProvider({
   const { refresh, status: purchasesStatus } = usePurchases();
   const arePurchasesReady = purchasesStatus === 'ready';
   const [lastOutcome, setLastOutcome] = useState<Exclude<SyncStatus, 'signedOut'>>('syncing');
+  const [phoneCopyCheck, setPhoneCopyCheck] = useState<PhoneCopyCheck | null>(null);
   const syncNowRef = useRef<() => void>(() => {});
 
   // The effect below must not start again each time `refresh` changes: it reads it from here.
@@ -63,6 +80,17 @@ export function SyncProvider({
     let isStopped = false;
     let isRunning = false;
     let isAskedAgain = false;
+    let isPhoneCopyChecked = false;
+
+    /** Done once per sign-in, before the first synchronisation. It needs no network. */
+    async function checkPhoneCopy(accountId: string) {
+      const wasEmptied = await storage.emptyCopyOfAnotherAccount(accountId);
+      // The screens must forget the purchases of the other account before they are shown.
+      if (wasEmptied) await refreshRef.current();
+
+      isPhoneCopyChecked = true;
+      if (!isStopped) setPhoneCopyCheck({ accountId, hasFailed: false });
+    }
 
     async function run(account: RemotePurchases, accountPhotos: RemotePhotos) {
       // One synchronisation at a time: a request made meanwhile runs right after.
@@ -74,6 +102,8 @@ export function SyncProvider({
       isRunning = true;
       setLastOutcome('syncing');
       try {
+        if (!isPhoneCopyChecked) await checkPhoneCopy(account.accountId);
+
         do {
           isAskedAgain = false;
           const hasLocalChanges = await syncPurchases(storage, account);
@@ -85,6 +115,10 @@ export function SyncProvider({
       } catch {
         // Nothing is lost: the purchases are on the phone and the next attempt sends them.
         if (!isStopped) setLastOutcome('failed');
+        // The phone storage failed before the check ended: the screens stay hidden.
+        if (!isStopped && !isPhoneCopyChecked) {
+          setPhoneCopyCheck({ accountId: account.accountId, hasFailed: true });
+        }
       } finally {
         isRunning = false;
       }
@@ -110,12 +144,24 @@ export function SyncProvider({
   }, [storage, remote, localPhotos, remotePhotos, arePurchasesReady]);
 
   const status: SyncStatus = remote === null ? 'signedOut' : lastOutcome;
+  const phoneCopyStatus = getPhoneCopyStatus(remote, phoneCopyCheck);
 
   return (
-    <SyncContext.Provider value={{ status, syncNow: () => syncNowRef.current() }}>
+    <SyncContext.Provider value={{ status, phoneCopyStatus, syncNow: () => syncNowRef.current() }}>
       {children}
     </SyncContext.Provider>
   );
+}
+
+function getPhoneCopyStatus(
+  remote: RemotePurchases | null,
+  check: PhoneCopyCheck | null,
+): PhoneCopyStatus {
+  // Nobody is signed in: there is no account to compare the phone copy with.
+  if (remote === null) return 'ready';
+  // A check done for another account says nothing about this one.
+  if (check === null || check.accountId !== remote.accountId) return 'checking';
+  return check.hasFailed ? 'failed' : 'ready';
 }
 
 export function useSync(): SyncContextValue {

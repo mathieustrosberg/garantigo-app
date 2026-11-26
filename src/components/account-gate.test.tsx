@@ -1,11 +1,24 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { HeroUINativeProvider } from 'heroui-native';
 import { Text } from 'react-native';
 
 import { AccountProvider } from '@/account/account-context';
+import type { PhoneCopyStatus } from '@/sync/sync-context';
 
 import { AccountGate } from './account-gate';
+
+// The synchronisation has its own tests: here, each test decides what it says.
+const mockSync = { phoneCopyStatus: 'ready' as PhoneCopyStatus, syncNow: jest.fn() };
+
+jest.mock('@/sync/sync-context', () => ({
+  useSync: () => mockSync,
+}));
+
+beforeEach(() => {
+  mockSync.phoneCopyStatus = 'ready';
+  mockSync.syncNow.mockClear();
+});
 
 type Session = { user: { id: string; email?: string } } | null;
 
@@ -75,6 +88,31 @@ describe('AccountGate', () => {
 
     expect(screen.queryByText('Mes achats')).toBeNull();
     expect(screen.getByText('Créer un compte')).toBeTruthy();
+  });
+
+  it('hides the purchases while the phone may still hold those of another account', async () => {
+    mockSync.phoneCopyStatus = 'checking';
+    const { client, emit } = createFakeClient();
+    await renderGate(client);
+
+    await act(async () => emit({ user: { id: 'account-2' } }));
+
+    expect(screen.queryByText('Mes achats')).toBeNull();
+    expect(screen.queryByText('Créer un compte')).toBeNull();
+  });
+
+  it('explains that the phone copy could not be checked, and lets the user try again', async () => {
+    mockSync.phoneCopyStatus = 'failed';
+    const { client, emit } = createFakeClient();
+    await renderGate(client);
+
+    await act(async () => emit({ user: { id: 'account-2' } }));
+    expect(screen.queryByText('Mes achats')).toBeNull();
+    expect(screen.getByText('Chargement impossible')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Réessayer'));
+
+    expect(mockSync.syncNow).toHaveBeenCalledTimes(1);
   });
 
   it('asks for no account when the online service is not set up', async () => {
