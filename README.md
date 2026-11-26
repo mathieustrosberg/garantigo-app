@@ -4,6 +4,18 @@ Application mobile qui centralise les achats, conserve les tickets de caisse pri
 
 Projet réalisé en binôme dans le cadre du Master 2 Lead Developer Front End.
 
+## Aperçu
+
+<p>
+  <img src="docs/screenshots/purchases.png" alt="Mes achats : vue d'ensemble, recherche, tri et liste des achats" width="160" />
+  <img src="docs/screenshots/purchase-form.png" alt="Formulaire d'ajout d'un achat" width="160" />
+  <img src="docs/screenshots/purchase-detail.png" alt="Détail d'un achat, avec sa fin de garantie" width="160" />
+  <img src="docs/screenshots/warranties.png" alt="Mes garanties : prochaine échéance et groupes par statut" width="160" />
+  <img src="docs/screenshots/warranties-dark.png" alt="Mes garanties en mode sombre" width="160" />
+</p>
+
+De gauche à droite : Mes achats, le formulaire d'ajout, le détail d'un achat, Mes garanties, puis Mes garanties en mode sombre. Captures prises dans le simulateur iOS.
+
 ## Fonctionnalités
 
 Sans compte connecté, l'application affiche un accueil qui propose de créer un compte ou de se connecter. Une fois connecté, elle compte quatre écrans principaux, reliés par une barre d'onglets (Mes achats, Mes garanties) qui porte aussi le bouton d'ajout. Le détail, le formulaire et le compte s'ouvrent par-dessus.
