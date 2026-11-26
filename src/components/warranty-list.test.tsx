@@ -57,7 +57,8 @@ describe('WarrantyList', () => {
   it('only unfolds the warranties that expire soon', async () => {
     await renderList([headphones, coffeeMachine, vacuum]);
 
-    expect(screen.getByText('Machine à café')).toBeTruthy();
+    // Once in the card of the next end, once in its group.
+    expect(screen.getAllByText('Machine à café')).toHaveLength(2);
     expect(screen.queryByText('Casque audio')).toBeNull();
     expect(screen.queryByText('Aspirateur')).toBeNull();
   });
@@ -67,7 +68,8 @@ describe('WarrantyList', () => {
     await fireEvent.press(screen.getByText('Garanties actives'));
     await fireEvent.press(screen.getByText('Garanties expirées'));
 
-    expect(screen.getByText('Machine à café')).toBeTruthy();
+    // Once in the card of the next end, once in its group.
+    expect(screen.getAllByText('Machine à café')).toHaveLength(2);
     expect(screen.getByText('Fin le 12 décembre 2026')).toBeTruthy();
     expect(screen.getByText('18 jours restants')).toBeTruthy();
 
@@ -81,13 +83,17 @@ describe('WarrantyList', () => {
   it('puts first the warranty that ends first', async () => {
     await renderList([headphones, coffeeMachine, vacuum]);
 
-    expect(screen.getByText('Garantie de Machine à café')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Prochaine échéance : Machine à café, 18 jours restants'),
+    ).toBeTruthy();
   });
 
   it('falls back on the active warranties when none expires soon', async () => {
     await renderList([headphones, vacuum]);
 
-    expect(screen.getByText('Garantie de Casque audio')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Prochaine échéance : Casque audio, 725 jours restants'),
+    ).toBeTruthy();
   });
 
   it('says when every warranty has expired', async () => {
@@ -118,7 +124,7 @@ describe('WarrantyList', () => {
     const onOpenPurchase = jest.fn();
     await renderList([headphones, coffeeMachine], { onOpenPurchase });
 
-    await fireEvent.press(screen.getByText('Machine à café'));
+    await fireEvent.press(screen.getByText('Fin le 12 décembre 2026'));
 
     expect(onOpenPurchase).toHaveBeenCalledWith('coffee-machine');
   });

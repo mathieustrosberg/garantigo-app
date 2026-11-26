@@ -139,7 +139,9 @@ describe('WarrantiesScreen', () => {
   it('groups the purchases by warranty status at the current date', async () => {
     await renderScreen(<WarrantiesScreen />, [vacuum, headphones, coffeeMachine]);
 
-    expect(await screen.findByText('Garantie de Machine à café')).toBeTruthy();
+    expect(
+      await screen.findByLabelText('Prochaine échéance : Machine à café, 18 jours restants'),
+    ).toBeTruthy();
     expect(screen.getAllByText('1 élément')).toHaveLength(3);
     expect(screen.getByText('18 jours restants')).toBeTruthy();
   });
@@ -147,7 +149,7 @@ describe('WarrantiesScreen', () => {
   it('opens the detail of a purchase and the form to add one', async () => {
     await renderScreen(<WarrantiesScreen />, [coffeeMachine]);
 
-    await fireEvent.press(await screen.findByText('Machine à café'));
+    await fireEvent.press(await screen.findByText('Fin le 12 décembre 2026'));
 
     expect(mockPush).toHaveBeenCalledWith('/purchases/coffee-machine');
   });
