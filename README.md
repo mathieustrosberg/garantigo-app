@@ -1,20 +1,60 @@
-# GarantiGo
+<div align="center">
+  <img src="docs/logo.svg" alt="" width="88" />
+  <h1>GarantiGo</h1>
+  <p><strong>Vos achats. Vos tickets. Vos garanties.</strong></p>
+  <p>
+    Application mobile qui centralise les achats, conserve les tickets de caisse pris en photo<br />
+    et suit les dates de fin de garantie.
+  </p>
+  <p>
+    <a href="https://github.com/mathieustrosberg/garantigo-app/actions/workflows/ci.yml"><img src="https://github.com/mathieustrosberg/garantigo-app/actions/workflows/ci.yml/badge.svg" alt="État de la CI" /></a>
+    <img src="https://img.shields.io/badge/Expo-SDK%2058-000020?logo=expo&logoColor=white" alt="Expo SDK 58" />
+    <img src="https://img.shields.io/badge/React%20Native-0.88-58c4dc?logo=react&logoColor=white" alt="React Native 0.88" />
+    <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white" alt="TypeScript en mode strict" />
+  </p>
+  <p>
+    <a href="#fonctionnalités">Fonctionnalités</a> ·
+    <a href="#stack">Stack</a> ·
+    <a href="#installation">Installation</a> ·
+    <a href="#synchronisation">Synchronisation</a> ·
+    <a href="#tests">Tests</a> ·
+    <a href="#limites-connues">Limites</a>
+  </p>
+  <br />
+  <img src="docs/screenshots/banner.png" alt="Trois écrans de GarantiGo : Mes garanties, Mes achats et le détail d'un achat" width="100%" />
+</div>
 
-Application mobile qui centralise les achats, conserve les tickets de caisse pris en photo et suit les dates de fin de garantie.
+<br />
+
+<table>
+  <tr>
+    <td width="25%" valign="top"><strong>Le ticket, en photo</strong><br />Pris avec la caméra, puis conservé sur le téléphone.</td>
+    <td width="25%" valign="top"><strong>La garantie, calculée</strong><br />Date de fin, jours restants et statut, pour chaque achat.</td>
+    <td width="25%" valign="top"><strong>Le téléphone d'abord</strong><br />Tout est enregistré sur place : l'application fonctionne sans réseau.</td>
+    <td width="25%" valign="top"><strong>Synchronisé</strong><br />Un compte, et on retrouve tout sur un autre téléphone.</td>
+  </tr>
+</table>
 
 Projet réalisé en binôme dans le cadre du Master 2 Lead Developer Front End.
 
 ## Aperçu
 
-<p>
-  <img src="docs/screenshots/purchases.png" alt="Mes achats : vue d'ensemble, recherche, tri et liste des achats" width="160" />
-  <img src="docs/screenshots/purchase-form.png" alt="Formulaire d'ajout d'un achat" width="160" />
-  <img src="docs/screenshots/purchase-detail.png" alt="Détail d'un achat, avec sa fin de garantie" width="160" />
-  <img src="docs/screenshots/warranties.png" alt="Mes garanties : prochaine échéance et groupes par statut" width="160" />
-  <img src="docs/screenshots/warranties-dark.png" alt="Mes garanties en mode sombre" width="160" />
-</p>
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/purchases.png" alt="Mes achats : vue d'ensemble, recherche, tri et liste des achats" width="190" /></td>
+    <td align="center" width="25%"><img src="docs/screenshots/purchase-form.png" alt="Formulaire d'ajout d'un achat" width="190" /></td>
+    <td align="center" width="25%"><img src="docs/screenshots/purchase-detail.png" alt="Détail d'un achat, avec sa fin de garantie" width="190" /></td>
+    <td align="center" width="25%"><img src="docs/screenshots/warranties.png" alt="Mes garanties : prochaine échéance et groupes par statut" width="190" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Mes achats</strong><br />Vue d'ensemble, recherche et tri</td>
+    <td align="center"><strong>Ajouter</strong><br />Trois champs obligatoires, photo du ticket</td>
+    <td align="center"><strong>Détail</strong><br />Fin de garantie et jours restants</td>
+    <td align="center"><strong>Mes garanties</strong><br />La prochaine échéance en tête</td>
+  </tr>
+</table>
 
-De gauche à droite : Mes achats, le formulaire d'ajout, le détail d'un achat, Mes garanties, puis Mes garanties en mode sombre. Captures prises dans le simulateur iOS.
+Captures prises dans le simulateur iOS. L'interface suit le thème clair ou sombre du téléphone.
 
 ## Fonctionnalités
 
