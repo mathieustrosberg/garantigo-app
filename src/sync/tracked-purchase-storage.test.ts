@@ -122,6 +122,82 @@ describe('createTrackedPurchaseStorage', () => {
     expect(await storage.getAll()).toEqual([kettle]);
   });
 
+  describe('emptyCopyOfAnotherAccount', () => {
+    const toaster = {
+      id: 'toaster',
+      name: 'Grille-pain',
+      purchaseDate: '2026-03-01',
+      warrantyMonths: 24,
+      receiptFileName: 'receipt-1.jpg',
+    };
+
+    /** A phone that holds the toaster of `owner`, or of nobody yet when `owner` is null. */
+    function createPhoneOf(owner: string | null) {
+      const changeLog = createInMemoryChangeLogStore({
+        toaster: { changedAt: NOW, isDeleted: false },
+      });
+      const deletePhoto = jest.fn();
+      const storage = createTrackedPurchaseStorage(
+        createInMemoryPurchaseStorage([toaster]),
+        changeLog,
+        createInMemoryOwnerStore(owner),
+        { getNow: () => NOW, deletePhoto },
+      );
+      return { storage, changeLog, deletePhoto };
+    }
+
+    it('empties the purchases, the change log and the photos of another account', async () => {
+      const { storage, changeLog, deletePhoto } = createPhoneOf('account-1');
+
+      const wasEmptied = await storage.emptyCopyOfAnotherAccount('account-2');
+
+      expect(wasEmptied).toBe(true);
+      expect(await storage.getAll()).toEqual([]);
+      expect(await changeLog.read()).toEqual({});
+      expect(deletePhoto).toHaveBeenCalledWith('receipt-1.jpg');
+    });
+
+    it('keeps the copy of the account that signs in again', async () => {
+      const { storage, deletePhoto } = createPhoneOf('account-1');
+
+      const wasEmptied = await storage.emptyCopyOfAnotherAccount('account-1');
+
+      expect(wasEmptied).toBe(false);
+      expect(await storage.getAll()).toEqual([toaster]);
+      expect(deletePhoto).not.toHaveBeenCalled();
+    });
+
+    it('keeps the purchases made before the very first sign-in', async () => {
+      const { storage } = createPhoneOf(null);
+
+      const wasEmptied = await storage.emptyCopyOfAnotherAccount('account-1');
+
+      expect(wasEmptied).toBe(false);
+      expect(await storage.getAll()).toEqual([toaster]);
+    });
+
+    it('gives the phone to the new account: what it adds offline survives the next merge', async () => {
+      const { storage } = createPhoneOf('account-1');
+      await storage.emptyCopyOfAnotherAccount('account-2');
+      const kettle = await storage.add(kettleInput);
+
+      const result = await storage.mergeWithRemote([], 'account-2');
+
+      expect(await storage.getAll()).toEqual([kettle]);
+      expect(result.toUpload.map((remote) => remote.purchase)).toEqual([kettle]);
+    });
+
+    it('tells no listener: emptying the copy is not a change made by the user', async () => {
+      const { storage } = createPhoneOf('account-1');
+      const listener = jest.fn();
+      storage.onLocalChange(listener);
+
+      await storage.emptyCopyOfAnotherAccount('account-2');
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
   describe('receipt photos left without purchase by a merge', () => {
     const toaster = {
       id: 'toaster',

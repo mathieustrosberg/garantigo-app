@@ -78,7 +78,7 @@ Le retour haptique est désactivé par iOS en mode économie d'énergie : vérif
 - [ ] Écran Compte : « Vos achats sont synchronisés. » s'affiche, et « Synchroniser maintenant » relance la synchronisation.
 - [ ] Un achat ajouté en mode avion reste sur le téléphone, puis part vers l'autre une fois le réseau revenu.
 - [ ] Après une déconnexion puis une reconnexion au même compte, tous les achats sont là.
-- [ ] Un second compte connecté sur le même téléphone ne voit aucun achat du premier.
+- [ ] Un second compte connecté sur le même téléphone ne voit aucun achat du premier, pas même un instant à la connexion.
 
 ## Hors connexion
 

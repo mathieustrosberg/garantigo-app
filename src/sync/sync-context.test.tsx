@@ -11,7 +11,10 @@ import { createInMemoryRemotePhotos } from './remote-photos';
 import { createInMemoryRemotePurchases, type RemotePurchases } from './remote-purchases';
 import { SyncProvider, useSync } from './sync-context';
 import type { LocalPhotos, RemotePhotos } from './sync-photos';
-import { createTrackedPurchaseStorage } from './tracked-purchase-storage';
+import {
+  createTrackedPurchaseStorage,
+  type TrackedPurchaseStorage,
+} from './tracked-purchase-storage';
 
 const NOW = '2026-11-24T10:00:00.000Z';
 
@@ -31,12 +34,13 @@ const toaster: Purchase = {
 
 function Probe() {
   const { purchases, addPurchase } = usePurchases();
-  const { status, syncNow } = useSync();
+  const { status, phoneCopyStatus, syncNow } = useSync();
   const names = purchases.map((purchase) => purchase.name).sort();
 
   return (
     <>
       <Text>{`${status} : ${names.join(', ')}`}</Text>
+      <Text>{`copie : ${phoneCopyStatus}`}</Text>
       <Pressable
         onPress={() =>
           addPurchase({ name: 'Bouilloire', purchaseDate: '2026-10-02', warrantyMonths: 12 })
@@ -67,14 +71,23 @@ function createPhonePhotos() {
 type RenderOptions = {
   localPhotos?: LocalPhotos;
   remotePhotos?: RemotePhotos;
+  /** Id of the account the phone copy belongs to. Nobody by default. */
+  owner?: string;
+  /** Replaces the check of the phone copy, to decide when it ends or to make it fail. */
+  emptyCopyOfAnotherAccount?: TrackedPurchaseStorage['emptyCopyOfAnotherAccount'];
 };
 
 async function renderProbe(remote: RemotePurchases | null, options: RenderOptions = {}) {
-  const storage = createTrackedPurchaseStorage(
+  const trackedStorage = createTrackedPurchaseStorage(
     createInMemoryPurchaseStorage([headphones]),
     createInMemoryChangeLogStore(),
-    createInMemoryOwnerStore(),
+    createInMemoryOwnerStore(options.owner ?? null),
   );
+  const storage: TrackedPurchaseStorage = {
+    ...trackedStorage,
+    emptyCopyOfAnotherAccount:
+      options.emptyCopyOfAnotherAccount ?? trackedStorage.emptyCopyOfAnotherAccount,
+  };
 
   await render(
     <PurchasesProvider storage={storage}>
@@ -207,5 +220,65 @@ describe('SyncProvider', () => {
     onAppStateChange('active');
 
     expect(await screen.findByText('synced : Casque audio, Grille-pain')).toBeTruthy();
+  });
+
+  describe('phone copy of another account', () => {
+    it('has nothing to check when nobody is signed in', async () => {
+      await renderProbe(null);
+
+      expect(await screen.findByText('copie : ready')).toBeTruthy();
+    });
+
+    it('is not ready as long as its owner has not been checked', async () => {
+      let endCheck: (wasEmptied: boolean) => void = () => {};
+      const check = new Promise<boolean>((resolve) => {
+        endCheck = resolve;
+      });
+
+      await renderProbe(createInMemoryRemotePurchases(), {
+        emptyCopyOfAnotherAccount: () => check,
+      });
+      expect(screen.getByText('copie : checking')).toBeTruthy();
+
+      endCheck(false);
+
+      expect(await screen.findByText('copie : ready')).toBeTruthy();
+    });
+
+    it('is emptied at sign-in, even when the network fails right after', async () => {
+      const account: RemotePurchases = {
+        ...createInMemoryRemotePurchases(),
+        fetchAll: () => Promise.reject(new Error('offline')),
+      };
+
+      await renderProbe(account, { owner: 'another-account' });
+
+      // The headphones of the other account are gone, although nothing was downloaded.
+      expect(await screen.findByText('failed : ')).toBeTruthy();
+      expect(screen.getByText('copie : ready')).toBeTruthy();
+    });
+
+    it('is kept when the same account signs in again', async () => {
+      const account = createInMemoryRemotePurchases();
+
+      await renderProbe(account, { owner: account.accountId });
+
+      expect(await screen.findByText('synced : Casque audio')).toBeTruthy();
+      expect(screen.getByText('copie : ready')).toBeTruthy();
+    });
+
+    it('says that the check failed, then checks again when asked', async () => {
+      const emptyCopyOfAnotherAccount = jest
+        .fn<Promise<boolean>, [string]>()
+        .mockRejectedValueOnce(new Error('storage failed'))
+        .mockResolvedValue(false);
+      await renderProbe(createInMemoryRemotePurchases(), { emptyCopyOfAnotherAccount });
+      await screen.findByText('copie : failed');
+
+      await fireEvent.press(screen.getByText('Synchroniser'));
+
+      expect(await screen.findByText('copie : ready')).toBeTruthy();
+      expect(await screen.findByText('synced : Casque audio')).toBeTruthy();
+    });
   });
 });
